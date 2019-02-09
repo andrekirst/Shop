@@ -14,6 +14,7 @@ using Microsoft.Extensions.Options;
 using ProductSearchService.API.DataAccess;
 using Swashbuckle.AspNetCore.Swagger;
 using Microsoft.EntityFrameworkCore;
+using AutoMapper;
 
 namespace ProductSearchService.API
 {
@@ -49,26 +50,51 @@ namespace ProductSearchService.API
         private string ConnectionString => Configuration.GetConnectionString("ProductSearchConnectionString");
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+        public void Configure(IApplicationBuilder app, IHostingEnvironment env, IApplicationLifetime lifetime, ProductSearchDbContext dbContext)
         {
-            if (env.IsDevelopment())
-            {
-                app.UseDeveloperExceptionPage();
-            }
-            else
-            {
-                // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-                app.UseHsts();
-            }
+            app.UseMvc();
+            app.UseDefaultFiles();
+            app.UseStaticFiles();
 
-            app.UseHttpsRedirection();
+            SetupAutoMapper();
 
-            app.UseRouting(routes =>
+            app.UseSwagger();
+
+            app.UseSwaggerUI(c =>
             {
-                routes.MapApplication();
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "ProductSearchServiceAPI - v1");
             });
 
-            app.UseAuthorization();
+            using (var scope = app.ApplicationServices.GetRequiredService<IServiceScopeFactory>().CreateScope())
+            {
+                scope.ServiceProvider.GetService<ProductSearchDbContext>().MigrateDB();
+            }
+
+            //if (env.IsDevelopment())
+            //{
+            //    app.UseDeveloperExceptionPage();
+            //}
+            //else
+            //{
+            //    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+            //    app.UseHsts();
+            //}
+
+            //app.UseHttpsRedirection();
+
+            //app.UseRouting(routes =>
+            //{
+            //    routes.MapApplication();
+            //});
+
+            //app.UseAuthorization();
+        }
+
+        private void SetupAutoMapper()
+        {
+            Mapper.Initialize(config =>
+            {
+            });
         }
     }
 }

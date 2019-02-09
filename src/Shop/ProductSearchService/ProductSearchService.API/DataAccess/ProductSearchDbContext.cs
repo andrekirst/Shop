@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Polly;
 using ProductSearchService.API.Model;
 using System;
 using System.Collections.Generic;
@@ -22,6 +23,12 @@ namespace ProductSearchService.API.DataAccess
             base.OnModelCreating(modelBuilder);
         }
 
-        
+        public void MigrateDB()
+        {
+            Policy
+                .Handle<Exception>()
+                .WaitAndRetry(5, r => TimeSpan.FromSeconds(5))
+                .Execute(() => Database.Migrate());
+        }
     }
 }

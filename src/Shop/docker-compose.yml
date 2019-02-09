@@ -1,0 +1,41 @@
+version '3'
+services:
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    volumes:
+      - rabbitmqdata:/DockerData/Shop/RabbitMq
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=rabbitmquser
+      - RABBITMQ_DEFAULT_PASS=01031990Pc
+
+  sqlserver:
+    image: microsoft/mssql-server-linux:2017-CU12
+    container_name: sqlserver
+    volumes:
+      - sqlserverdata:/DockerData/Shop/SqlServer
+    ports:
+      - "1434:1433"
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_PID=Developer
+      - SA_PASSWORD=01031990Pc
+
+  mailserver:
+    image: djfarrelly/maildev
+    container_name: mailserver
+    ports:
+      - "25:25"
+      - "4000:80"
+  
+  logserver:
+    image: datalust/seq:5
+    container_name: logserver
+    ports:
+      - "5341:80"
+    environment:
+      - ACCEPT_EULA=Y

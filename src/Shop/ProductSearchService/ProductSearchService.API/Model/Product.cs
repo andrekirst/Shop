@@ -1,10 +1,12 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace ProductSearchService.API.Model
 {
-    [Table(name: "Products")]
     public class Product
     {
+        public long ProductId { get; set; }
+
+        [StringLength(maximumLength: 256)]
         public string Productnumber { get; set; }
 
         public string Name { get; set; }

@@ -6,7 +6,7 @@ using ProductSearchService.API.Model;
 namespace ProductSearchService.API.Migrations
 {
     [DbContext(typeof(ProductSearchDbContext))]
-    public class ProductSearchDBContextModelSnapshot : ModelSnapshot
+    public class ProductSearchDbContextModelSnapshot : ModelSnapshot
     {
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
@@ -14,11 +14,10 @@ namespace ProductSearchService.API.Migrations
 
             modelBuilder.Entity<Product>(b =>
             {
-                b.Property<long>(p => p.ProductId).ValueGeneratedOnAdd();
-                b.Property<string>(p => p.Productnumber);
-                b.Property<string>(p => p.Name);
-                b.Property<string>(p => p.Description);
-
+                b.Property(p => p.ProductId).ValueGeneratedOnAdd();
+                b.Property(p => p.Productnumber);
+                b.Property(p => p.Name);
+                b.Property(p => p.Description);
                 b.ToTable("Products");
             });
         }

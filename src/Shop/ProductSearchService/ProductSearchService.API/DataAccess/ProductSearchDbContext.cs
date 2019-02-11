@@ -20,9 +20,8 @@ namespace ProductSearchService.API.DataAccess
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Product>().HasKey(m => m.ProductId);
+            modelBuilder.Entity<Product>().HasIndex(p => p.Productnumber).IsUnique();
             modelBuilder.Entity<Product>().ToTable("Products");
-
-            base.OnModelCreating(modelBuilder);
         }
 
         public void MigrateDB()

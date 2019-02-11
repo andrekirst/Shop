@@ -18,6 +18,8 @@ namespace ProductSearchService.API.Controllers
         }
 
         [HttpGet]
+        [ProducesResponseType(statusCode: 404)]
+        [ProducesResponseType(statusCode: 200, Type = typeof(Product))]
         [Route("{productnumber}", Name = "GetByProductnumber")]
         public async Task<ActionResult<Product>> GetByProductnumber(string productnumber)
         {

@@ -17,13 +17,14 @@ namespace ProductSearchService.API.Migrations
                 columns: table => new
                 {
                     ProductId = table.Column<long>(nullable: false),
-                    Productnumber = table.Column<string>(nullable: false),
+                    Productnumber = table.Column<string>(nullable: false, maxLength: 256),
                     Name = table.Column<string>(nullable: true),
                     Description = table.Column<string>(nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey(name: "PK_Product_ProductId", c => c.ProductId);
+                    table.PrimaryKey(name: "PK_Products_ProductId", column => column.ProductId);
+                    table.UniqueConstraint("UNIQUE_Products_Productnumber", column => column.Productnumber);
                 });
         }
 

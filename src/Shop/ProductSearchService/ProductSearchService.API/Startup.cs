@@ -24,7 +24,12 @@ namespace ProductSearchService.API
         public void ConfigureServices(IServiceCollection services)
         {
             string connectionString = ConnectionString;
-            services.AddDbContext<ProductSearchDbContext>(options => options.UseSqlServer(connectionString));
+            services.AddDbContext<ProductSearchDbContext>(options =>
+            {
+                options.UseSqlServer(connectionString);
+                options.EnableDetailedErrors();
+                options.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
+            });
 
             services.AddMvc()
                 .AddNewtonsoftJson();

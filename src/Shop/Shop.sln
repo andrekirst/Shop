@@ -7,7 +7,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Infrastructure", "Infrastru
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ProductSearchService", "ProductSearchService", "{D43C717F-06EC-44CC-B76D-45104936929D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProductSearchService.API", "ProductSearchService\ProductSearchService.API\ProductSearchService.API.csproj", "{21CA8130-A028-4AA2-AFDC-BF016F85781A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ProductSearchService.API", "ProductSearchService\ProductSearchService.API\ProductSearchService.API.csproj", "{21CA8130-A028-4AA2-AFDC-BF016F85781A}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{F0F2B1EB-CD42-4C78-8944-AF109C5395ED}"
+	ProjectSection(SolutionItems) = preProject
+		docker-compose.yml = docker-compose.yml
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

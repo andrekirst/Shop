@@ -8,13 +8,18 @@ using ProductSearchService.API.DataAccess;
 using Swashbuckle.AspNetCore.Swagger;
 using Microsoft.EntityFrameworkCore;
 using AutoMapper;
+using Microsoft.Extensions.Logging;
+using Newtonsoft.Json.Serialization;
 
 namespace ProductSearchService.API
 {
     public class Startup
     {
-        public Startup(IConfiguration configuration)
+        private readonly ILogger<Startup> _logger;
+
+        public Startup(ILogger<Startup> logger, IConfiguration configuration)
         {
+            _logger = logger;
             Configuration = configuration;
         }
 
@@ -24,29 +29,31 @@ namespace ProductSearchService.API
         public void ConfigureServices(IServiceCollection services)
         {
             string connectionString = ConnectionString;
-            services.AddDbContext<ProductSearchDbContext>(options =>
+            _logger.LogDebug(message: $"ConnectionString: {connectionString}");
+
+            services.AddDbContext<ProductSearchDbContext>(optionsAction: options =>
             {
-                options.UseSqlServer(connectionString);
+                options.UseSqlServer(connectionString: connectionString);
                 options.EnableDetailedErrors();
-                options.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
+                options.UseQueryTrackingBehavior(queryTrackingBehavior: QueryTrackingBehavior.NoTracking);
             });
 
             services.AddMvc()
-                .AddNewtonsoftJson();
+                .AddJsonOptions(setupAction: options => options.SerializerSettings.ContractResolver = new DefaultContractResolver());
 
-            services.AddSwaggerGen(c =>
+            services.AddSwaggerGen(setupAction: c =>
             {
-                c.SwaggerDoc("v1", new Info { Title = "ProductSearchService.API", Version = "v1" });
+                c.SwaggerDoc(name: "v1", info: new Info { Title = "ProductSearchService.API", Version = "v1" });
             });
 
-            services.AddHealthChecks(checks =>
+            services.AddHealthChecks(checks: checks =>
             {
-                checks.WithDefaultCacheDuration(TimeSpan.FromSeconds(1));
-                checks.AddSqlCheck("ProductSearchConnectionString", ConnectionString);
+                checks.WithDefaultCacheDuration(duration: TimeSpan.FromSeconds(value: 1));
+                checks.AddSqlCheck(name: "ProductSearchConnectionString", connectionString: ConnectionString);
             });
         }
 
-        private string ConnectionString => Configuration.GetConnectionString("ProductSearchConnectionString");
+        private string ConnectionString => Configuration.GetConnectionString(name: "ProductSearchConnectionString");
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env, IApplicationLifetime lifetime, ProductSearchDbContext dbContext)
@@ -59,9 +66,9 @@ namespace ProductSearchService.API
 
             app.UseSwagger();
 
-            app.UseSwaggerUI(c =>
+            app.UseSwaggerUI(setupAction: c =>
             {
-                c.SwaggerEndpoint("/swagger/v1/swagger.json", "ProductSearchServiceAPI - v1");
+                c.SwaggerEndpoint(url: "/swagger/v1/swagger.json", name: "ProductSearchServiceAPI - v1");
             });
 
             using (var scope = app.ApplicationServices.GetRequiredService<IServiceScopeFactory>().CreateScope())
@@ -91,7 +98,7 @@ namespace ProductSearchService.API
 
         private void SetupAutoMapper()
         {
-            Mapper.Initialize(config =>
+            Mapper.Initialize(config: config =>
             {
             });
         }

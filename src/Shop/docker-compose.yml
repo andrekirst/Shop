@@ -19,7 +19,7 @@ services:
     volumes:
       - sqlserverdata:/DockerData/Shop/SqlServer
     ports:
-      - "1434:1433"
+      - "1433:1433"
     environment:
       - ACCEPT_EULA=Y
       - MSSQL_PID=Developer
@@ -43,11 +43,12 @@ services:
   productsearchserviceapi:
     image: shop/productsearchserviceapi:latest
     build: ProductSearchService/ProductSearchService.API
+    container_name: productsearchserviceapi
     depends_on:
       - rabbitmq
       - sqlserver
     ports:
-      - "5100"
+      - "5100:5100"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
 

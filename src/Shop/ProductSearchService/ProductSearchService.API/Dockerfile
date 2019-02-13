@@ -7,11 +7,8 @@ ENV WEBSITE_SITE_NAME ProductSearchService.API
 
 FROM microsoft/dotnet:3.0-sdk-stretch AS build
 WORKDIR /src
-# COPY ["ProductSearchService/ProductSearchService.API/ProductSearchService.API.csproj", "ProductSearchService/ProductSearchService.API/"]
-COPY ["ProductSearchService.API.csproj", "ProductSearchService/ProductSearchService.API/"]
-RUN dotnet restore "ProductSearchService/ProductSearchService.API/ProductSearchService.API.csproj"
 COPY . .
-WORKDIR "ProductSearchService/ProductSearchService.API"
+RUN dotnet restore "ProductSearchService.API.csproj"
 RUN dotnet build "ProductSearchService.API.csproj" -c Release -o /app
 
 FROM build AS publish

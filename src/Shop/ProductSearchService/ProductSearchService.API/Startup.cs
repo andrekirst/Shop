@@ -38,8 +38,13 @@ namespace ProductSearchService.API
                 options.UseQueryTrackingBehavior(queryTrackingBehavior: QueryTrackingBehavior.NoTracking);
             });
 
-            services.AddMvc()
-                .AddJsonOptions(setupAction: options => options.SerializerSettings.ContractResolver = new DefaultContractResolver());
+            //services
+            //    .AddMvc(options => options.ReturnHttpNotAcceptable = true)
+            //    .AddJsonOptions(setupAction: options => options.SerializerSettings.ContractResolver = new DefaultContractResolver());
+
+            services
+                .AddMvc()
+                .AddNewtonsoftJson();
 
             services.AddSwaggerGen(setupAction: c =>
             {

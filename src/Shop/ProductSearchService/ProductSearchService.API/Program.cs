@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Serilog;
 
 namespace ProductSearchService.API
 {
@@ -18,6 +19,7 @@ namespace ProductSearchService.API
                 .UseStartup<Startup>()
                 .UseHealthChecks("/health")
                 .UseApplicationInsights("ProductSearchService.API")
+                .UseSerilog()
                 .ConfigureLogging((hostingContext, logging) =>
                     {
                         logging.AddConfiguration(hostingContext.Configuration.GetSection("Logging"));

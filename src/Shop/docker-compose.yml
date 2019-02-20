@@ -43,7 +43,7 @@ services:
   productsearchserviceapi:
     image: shop/productsearchserviceapi:latest
     build: ProductSearchService/ProductSearchService.API
-    container_name: productsearchserviceapi
+    container_name: productsearchservice.api
     depends_on:
       - rabbitmq
       - sqlserver

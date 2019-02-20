@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using AutoMapper;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Serialization;
+using Serilog;
 
 namespace ProductSearchService.API
 {
@@ -38,10 +39,6 @@ namespace ProductSearchService.API
                 options.UseQueryTrackingBehavior(queryTrackingBehavior: QueryTrackingBehavior.NoTracking);
             });
 
-            //services
-            //    .AddMvc(options => options.ReturnHttpNotAcceptable = true)
-            //    .AddJsonOptions(setupAction: options => options.SerializerSettings.ContractResolver = new DefaultContractResolver());
-
             services
                 .AddMvc()
                 .AddNewtonsoftJson();
@@ -63,6 +60,11 @@ namespace ProductSearchService.API
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env, IApplicationLifetime lifetime, ProductSearchDbContext dbContext)
         {
+            Log.Logger = new LoggerConfiguration()
+                .ReadFrom.Configuration(Configuration)
+                .Enrich.WithMachineName()
+                .CreateLogger();
+
             app.UseMvc();
             app.UseDefaultFiles();
             app.UseStaticFiles();

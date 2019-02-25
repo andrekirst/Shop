@@ -9,7 +9,6 @@ using Swashbuckle.AspNetCore.Swagger;
 using Microsoft.EntityFrameworkCore;
 using AutoMapper;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json.Serialization;
 using Serilog;
 
 namespace ProductSearchService.API

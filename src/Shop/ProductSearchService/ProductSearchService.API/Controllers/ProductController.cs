@@ -1,5 +1,4 @@
-﻿using System.Linq;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProductSearchService.API.DataAccess;
 using ProductSearchService.API.Model;
@@ -34,7 +33,9 @@ namespace ProductSearchService.API.Controllers
         {
             try
             {
-                var product = await _dbContext.Products.FirstOrDefaultAsync(p => p.Productnumber == productnumber, cancellationToken: cancellationToken);
+                var product = await _dbContext.Products.FirstOrDefaultAsync(
+                    predicate: p => p.Productnumber == productnumber,
+                    cancellationToken: cancellationToken);
 
                 return Ok(product);
             }
@@ -53,12 +54,12 @@ namespace ProductSearchService.API.Controllers
         {
             try
             {
-                var filterParameter = new SqlParameter("filter", filter);
-                var products = await _dbContext.Products.FromSql(
+                var filterParameter = new SqlParameter("Filter", $"%{filter.Trim()}%");
+                var products = await _dbContext.Products.FromSql(sql:
                         "SELECT [ProductId], [Productnumber], [Name], [Description] FROM [dbo].[Products]" +
-                        "WHERE [Productnumber] LIKE '%' + @Filter + '%'" +
-                        "OR [Name] LIKE '%' + @Filter + '%'" +
-                        "OR [Description] LIKE '%' + @Filter + '%'",
+                        "WHERE [Productnumber] LIKE @Filter " +
+                        "OR [Name] LIKE @Filter " +
+                        "OR [Description] LIKE @Filter",
                         filterParameter)
                         .ToListAsync(cancellationToken: cancellationToken);
 

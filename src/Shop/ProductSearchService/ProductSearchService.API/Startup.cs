@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using AutoMapper;
 using Microsoft.Extensions.Logging;
 using Serilog;
+using ProductSearchService.API.Repositories;
 
 namespace ProductSearchService.API
 {
@@ -41,6 +42,8 @@ namespace ProductSearchService.API
             services
                 .AddMvc()
                 .AddNewtonsoftJson();
+
+            services.AddTransient<IProductsRepository, ProductsRepository>();
 
             services.AddSwaggerGen(setupAction: c =>
             {

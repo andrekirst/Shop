@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Data.SqlClient;
 using System.Threading;
 using Microsoft.Extensions.Logging;
+using ProductSearchService.API.Repositories;
 
 namespace ProductSearchService.API.Controllers
 {
@@ -14,15 +15,15 @@ namespace ProductSearchService.API.Controllers
     [ApiController]
     public class ProductController : ControllerBase
     {
-        private readonly ProductSearchDbContext _dbContext;
         private readonly ILogger<ProductController> _logger;
+        private readonly IProductsRepository _repository;
 
         public ProductController(
-            ProductSearchDbContext dbContext,
+            IProductsRepository repository,
             ILogger<ProductController> logger)
         {
-            _dbContext = dbContext;
             _logger = logger;
+            _repository = repository;
         }
 
         [HttpGet]
@@ -33,8 +34,8 @@ namespace ProductSearchService.API.Controllers
         {
             try
             {
-                var product = await _dbContext.Products.FirstOrDefaultAsync(
-                    predicate: p => p.Productnumber == productnumber,
+                var product = await _repository.GetProductByProductnumber(
+                    productnumber: productnumber,
                     cancellationToken: cancellationToken);
 
                 return Ok(product);
@@ -54,14 +55,9 @@ namespace ProductSearchService.API.Controllers
         {
             try
             {
-                var filterParameter = new SqlParameter("Filter", $"%{filter.Trim()}%");
-                var products = await _dbContext.Products.FromSql(sql:
-                        "SELECT [ProductId], [Productnumber], [Name], [Description] FROM [dbo].[Products]" +
-                        "WHERE [Productnumber] LIKE @Filter " +
-                        "OR [Name] LIKE @Filter " +
-                        "OR [Description] LIKE @Filter",
-                        filterParameter)
-                        .ToListAsync(cancellationToken: cancellationToken);
+                var products = await _repository.GetProductsByFilter(
+                    filter: filter,
+                    cancellationToken: cancellationToken);
 
                 return Ok(products);
             }

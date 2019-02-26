@@ -18,7 +18,7 @@
     <PackageReference Include="Microsoft.Extensions.HealthChecks.SqlServer" Version="1.0.0" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.4.4" />
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="2.2.2" />
-    <PackageReference Include="Polly" Version="7.0.2" />
+    <PackageReference Include="Polly" Version="7.0.3" />
     <PackageReference Include="Serilog.AspNetCore" Version="2.1.1" />
     <PackageReference Include="Serilog.Enrichers.Environment" Version="2.1.2" />
     <PackageReference Include="Serilog.Settings.Configuration" Version="3.0.1" />
@@ -28,8 +28,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Commands\" />
-    <Folder Include="Events\" />
+    <ProjectReference Include="..\..\Infrastructure.Messaging\Infrastructure.Messaging.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -11,6 +11,10 @@ using AutoMapper;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using ProductSearchService.API.Repositories;
+using Infrastructure.Messaging;
+using ProductSearchService.API.Commands;
+using ProductSearchService.API.Model;
+using ProductSearchService.API.Events;
 
 namespace ProductSearchService.API
 {
@@ -38,6 +42,16 @@ namespace ProductSearchService.API
                 options.EnableDetailedErrors();
                 options.UseQueryTrackingBehavior(queryTrackingBehavior: QueryTrackingBehavior.NoTracking);
             });
+
+            var configSection = Configuration.GetSection("RabbitMQ");
+            string hostname = configSection["Hostname"];
+            string username = configSection["Username"];
+            string password = configSection["Password"];
+            services.AddTransient<IMessagePublisher>((sp) => new RabbitMQMessagePublisher(
+                hostname: hostname,
+                username: username,
+                password: password,
+                exchange: "SearchLog"));
 
             services
                 .AddMvc()
@@ -85,30 +99,37 @@ namespace ProductSearchService.API
                 scope.ServiceProvider.GetService<ProductSearchDbContext>().MigrateDB();
             }
 
-            //if (env.IsDevelopment())
-            //{
-            //    app.UseDeveloperExceptionPage();
-            //}
-            //else
-            //{
-            //    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-            //    app.UseHsts();
-            //}
+            if (env.IsDevelopment())
+            {
+                app.UseDeveloperExceptionPage();
+            }
+            else
+            {
+                // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+                app.UseHsts();
+            }
 
             //app.UseHttpsRedirection();
 
-            //app.UseRouting(routes =>
-            //{
-            //    routes.MapApplication();
-            //});
+            app.UseRouting(routes =>
+            {
+                routes.MapApplication();
+            });
 
-            //app.UseAuthorization();
+            app.UseAuthorization();
         }
 
         private void SetupAutoMapper()
         {
             Mapper.Initialize(config: config =>
             {
+                config.CreateMap<SelectProductCommand, Product>();
+                config
+                    .CreateMap<Product, SelectProductCommand>()
+                    .ForCtorParam("messageId", opt => opt.MapFrom(c => Guid.NewGuid()));
+                config
+                    .CreateMap<SelectProductCommand, ProductSelectedEvent>()
+                    .ForCtorParam("messageId", opt => opt.MapFrom(c => Guid.NewGuid()));
             });
         }
     }

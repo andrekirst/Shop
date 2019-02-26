@@ -8,6 +8,11 @@ using System.Data.SqlClient;
 using System.Threading;
 using Microsoft.Extensions.Logging;
 using ProductSearchService.API.Repositories;
+using Infrastructure.Messaging;
+using ProductSearchService.API.Events;
+using AutoMapper;
+using ProductSearchService.API.Commands;
+using System;
 
 namespace ProductSearchService.API.Controllers
 {
@@ -17,13 +22,16 @@ namespace ProductSearchService.API.Controllers
     {
         private readonly ILogger<ProductController> _logger;
         private readonly IProductsRepository _repository;
+        private readonly IMessagePublisher _messagePublisher;
 
         public ProductController(
             IProductsRepository repository,
-            ILogger<ProductController> logger)
+            ILogger<ProductController> logger,
+            IMessagePublisher messagePublisher)
         {
             _logger = logger;
             _repository = repository;
+            _messagePublisher = messagePublisher;
         }
 
         [HttpGet]
@@ -37,6 +45,16 @@ namespace ProductSearchService.API.Controllers
                 var product = await _repository.GetProductByProductnumber(
                     productnumber: productnumber,
                     cancellationToken: cancellationToken);
+
+                ProductSelectedEvent productSelected = new ProductSelectedEvent(
+                    messageId: Guid.NewGuid(),
+                    productnumber: product.Productnumber,
+                    name: product.Name,
+                    description: product.Description);
+                await _messagePublisher.PublishMessageAsync(
+                    messageType: productSelected.MessageType,
+                    message: productSelected,
+                    routingKey: "SearchLogRoutingKey");
 
                 return Ok(product);
             }

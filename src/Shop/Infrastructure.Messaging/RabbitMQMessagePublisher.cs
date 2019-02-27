@@ -44,19 +44,19 @@ namespace Infrastructure.Messaging
                         {
                             using (var model = connection.CreateModel())
                             {
-                                //model.ExchangeDeclare(
-                                //    exchange: Exchange,
-                                //    type: "fanout",
-                                //    durable: true,
-                                //    autoDelete: false);
-                                model.QueueDeclare(queue: "test", durable: true, exclusive: false, autoDelete: false, arguments: null);
+                                model.QueueDeclare(
+                                    queue: routingKey,
+                                    durable: true,
+                                    exclusive: false,
+                                    autoDelete: false,
+                                    arguments: null);
                                 string data = MessageSerializer.Serialize(message);
                                 var body = Encoding.UTF8.GetBytes(data);
                                 IBasicProperties properties = model.CreateBasicProperties();
                                 properties.Headers = new Dictionary<string, object> { { "MessageType", messageType } };
                                 properties.Persistent = true;
                                 model.BasicPublish(
-                                    exchange: Exchange,
+                                    exchange: "",
                                     routingKey: routingKey,
                                     basicProperties: properties,
                                     body: body);

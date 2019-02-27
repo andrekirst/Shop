@@ -54,7 +54,7 @@ namespace ProductSearchService.API.Controllers
                 await _messagePublisher.PublishMessageAsync(
                     messageType: productSelected.MessageType,
                     message: productSelected,
-                    routingKey: "SearchLogRoutingKey");
+                    routingKey: "SearchLog");
 
                 return Ok(product);
             }

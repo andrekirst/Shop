@@ -2,6 +2,14 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.0</TargetFramework>
+    <PackageId>andrekirst.Shop.Infrastructure.Messaging</PackageId>
+    <Authors>André Kirst</Authors>
+    <Company>André Kirst</Company>
+    <Product>Shop</Product>
+    <PackageLicenseUrl>http://www.andrekirst.de</PackageLicenseUrl>
+    <PackageProjectUrl>https://github.com/andrekirst/Shop</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/andrekirst/Shop</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
   </PropertyGroup>
 
   <ItemGroup>

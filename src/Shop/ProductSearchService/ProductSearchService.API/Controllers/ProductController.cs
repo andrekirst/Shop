@@ -45,16 +45,7 @@ namespace ProductSearchService.API.Controllers
                 var product = await _repository.GetProductByProductnumber(
                     productnumber: productnumber,
                     cancellationToken: cancellationToken);
-
-                ProductSelectedEvent productSelected = new ProductSelectedEvent(
-                    messageId: Guid.NewGuid(),
-                    productnumber: product.Productnumber,
-                    name: product.Name,
-                    description: product.Description);
-                await _messagePublisher.PublishMessageAsync(
-                    messageType: productSelected.MessageType,
-                    message: productSelected,
-                    routingKey: "SearchLog");
+                await PublishProductSelectedEvent(product);
 
                 return Ok(product);
             }
@@ -63,6 +54,19 @@ namespace ProductSearchService.API.Controllers
                 _logger.LogError(exception, message: $"GetByProductnumber \"{productnumber}\" cancelled");
             }
             return NotFound();
+        }
+
+        private async Task PublishProductSelectedEvent(Product product)
+        {
+            ProductSelectedEvent productSelected = new ProductSelectedEvent(
+                                messageId: Guid.NewGuid(),
+                                productnumber: product.Productnumber,
+                                name: product.Name,
+                                description: product.Description);
+            await _messagePublisher.PublishMessageAsync(
+                messageType: productSelected.MessageType,
+                message: productSelected,
+                routingKey: "SearchLog");
         }
 
         [HttpGet]

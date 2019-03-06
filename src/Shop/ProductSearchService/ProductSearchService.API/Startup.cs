@@ -11,10 +11,10 @@ using AutoMapper;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using ProductSearchService.API.Repositories;
-using Infrastructure.Messaging;
 using ProductSearchService.API.Commands;
 using ProductSearchService.API.Model;
 using ProductSearchService.API.Events;
+using ProductSearchService.API.Messaging;
 
 namespace ProductSearchService.API
 {
@@ -43,6 +43,8 @@ namespace ProductSearchService.API
                 options.UseQueryTrackingBehavior(queryTrackingBehavior: QueryTrackingBehavior.NoTracking);
             });
 
+            services.AddTransient<IMessageSerializer, JsonMessageSerializer>();
+
             var configSection = Configuration.GetSection("RabbitMQ");
             string hostname = configSection["Hostname"];
             string username = configSection["Username"];
@@ -51,7 +53,9 @@ namespace ProductSearchService.API
                 hostname: hostname,
                 username: username,
                 password: password,
-                exchange: "SearchLog"));
+                exchange: "SearchLog",
+                messageSerializer: sp.GetService<IMessageSerializer>(),
+                logger: sp.GetService<ILogger<RabbitMQMessagePublisher>>()));
 
             services
                 .AddMvc()

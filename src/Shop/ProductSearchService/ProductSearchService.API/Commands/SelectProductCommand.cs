@@ -1,8 +1,5 @@
-﻿using Infrastructure.Messaging;
+﻿using ProductSearchService.API.Messaging;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace ProductSearchService.API.Commands
 {

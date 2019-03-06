@@ -55,6 +55,7 @@ namespace Infrastructure.Messaging
                                 IBasicProperties properties = model.CreateBasicProperties();
                                 properties.Headers = new Dictionary<string, object> { { "MessageType", messageType } };
                                 properties.Persistent = true;
+                                properties.ContentType = "application/json";
                                 model.BasicPublish(
                                     exchange: "",
                                     routingKey: routingKey,

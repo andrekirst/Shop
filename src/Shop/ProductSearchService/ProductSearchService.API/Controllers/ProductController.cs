@@ -1,18 +1,13 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using ProductSearchService.API.DataAccess;
 using ProductSearchService.API.Model;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using System.Data.SqlClient;
 using System.Threading;
 using Microsoft.Extensions.Logging;
 using ProductSearchService.API.Repositories;
-using Infrastructure.Messaging;
+using ProductSearchService.API.Messaging;
 using ProductSearchService.API.Events;
-using AutoMapper;
-using ProductSearchService.API.Commands;
-using System;
+using System.Linq;
 
 namespace ProductSearchService.API.Controllers
 {
@@ -45,28 +40,20 @@ namespace ProductSearchService.API.Controllers
                 var product = await _repository.GetProductByProductnumber(
                     productnumber: productnumber,
                     cancellationToken: cancellationToken);
-                await PublishProductSelectedEvent(product);
 
-                return Ok(product);
+                if (product != null)
+                {
+                    await PublishProductSelectedEvent(product: product);
+                    return Ok(product);
+                }
+
+                return NotFound();
             }
             catch (TaskCanceledException exception)
             {
                 _logger.LogError(exception, message: $"GetByProductnumber \"{productnumber}\" cancelled");
             }
             return NotFound();
-        }
-
-        private async Task PublishProductSelectedEvent(Product product)
-        {
-            ProductSelectedEvent productSelected = new ProductSelectedEvent(
-                                messageId: Guid.NewGuid(),
-                                productnumber: product.Productnumber,
-                                name: product.Name,
-                                description: product.Description);
-            await _messagePublisher.PublishMessageAsync(
-                messageType: productSelected.MessageType,
-                message: productSelected,
-                routingKey: "SearchLog");
         }
 
         [HttpGet]
@@ -81,6 +68,7 @@ namespace ProductSearchService.API.Controllers
                     filter: filter,
                     cancellationToken: cancellationToken);
 
+                await PublishProductsSearchedEvent(products, filter);
                 return Ok(products);
             }
             catch (TaskCanceledException exception)
@@ -88,7 +76,26 @@ namespace ProductSearchService.API.Controllers
                 _logger.LogError(exception, message: $"GetByFilter \"{filter}\" cancelled");
             }
 
+            _logger.LogInformation($"No data found for filter {filter}.");
             return NotFound();
+        }
+
+        private async Task PublishProductsSearchedEvent(List<Product> products, string filter)
+        {
+            ProductsSearchedEvent @event = new ProductsSearchedEvent(
+                filter: filter,
+                productsFound: products != null && products.Any(),
+                numberOfProductsFound: products.Count);
+            await _messagePublisher.SendMessageAsync(@event, "ProductsSearchedEvent");
+        }
+
+        private async Task PublishProductSelectedEvent(Product product)
+        {
+            ProductSelectedEvent @event = new ProductSelectedEvent(
+                    productnumber: product.Productnumber,
+                    name: product.Name,
+                    description: product.Description);
+            await _messagePublisher.SendMessageAsync(@event, "ProductSelectedEvent");
         }
     }
 }

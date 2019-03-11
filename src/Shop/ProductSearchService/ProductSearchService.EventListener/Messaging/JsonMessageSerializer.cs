@@ -4,7 +4,7 @@ using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
 using System.Text;
 
-namespace ProductSearchService.API.Messaging
+namespace ProductSearchService.EventListener.Messaging
 {
     public class JsonMessageSerializer : IMessageSerializer
     {

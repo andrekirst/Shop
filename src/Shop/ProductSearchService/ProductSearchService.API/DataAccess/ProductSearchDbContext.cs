@@ -26,13 +26,13 @@ namespace ProductSearchService.API.DataAccess
 
         public void MigrateDB()
         {
-            Policy
-                .Handle<Exception>()
-                .WaitAndRetry(5, r => TimeSpan.FromSeconds(5))
-                .Execute(() =>
-                {
-                    Database.Migrate();
-                });
+            //Policy
+            //    .Handle<Exception>()
+            //    .WaitAndRetry(5, r => TimeSpan.FromSeconds(5))
+            //    .Execute(() =>
+            //    {
+            //        Database.Migrate();
+            //    });
         }
     }
 }

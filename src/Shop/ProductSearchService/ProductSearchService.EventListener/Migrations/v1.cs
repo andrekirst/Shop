@@ -2,8 +2,8 @@
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Polly;
-using ProductSearchService.API.DataAccess;
-using ProductSearchService.API.Model;
+using ProductSearchService.EventListener.DataAccess;
+using ProductSearchService.EventListener.Model;
 using System;
 
 namespace ProductSearchService.API.Migrations
@@ -58,14 +58,18 @@ namespace ProductSearchService.API.Migrations
 
                     modelBuilder.Entity<Product>(b =>
                     {
-                        b.Property(p => p.ProductId);
+                        b.Property(p => p.ProductId).ValueGeneratedOnAdd();
                         b.Property(p => p.Productnumber);
                         b.Property(p => p.Name);
                         b.Property(p => p.Description);
 
+                        b.HasKey(p => p.ProductId);
+
                         b.ToTable("Products");
                     });
                 });
+
+            base.BuildTargetModel(modelBuilder);
         }
     }
 }

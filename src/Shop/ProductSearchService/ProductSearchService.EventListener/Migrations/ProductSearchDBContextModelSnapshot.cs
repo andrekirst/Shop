@@ -1,11 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Polly;
-using ProductSearchService.API.DataAccess;
-using ProductSearchService.API.Model;
+using ProductSearchService.EventListener.DataAccess;
+using ProductSearchService.EventListener.Model;
 using System;
 
-namespace ProductSearchService.API.Migrations
+namespace ProductSearchService.EventListener.Migrations
 {
     [DbContext(typeof(ProductSearchDbContext))]
     public class ProductSearchDbContextModelSnapshot : ModelSnapshot
@@ -25,6 +25,9 @@ namespace ProductSearchService.API.Migrations
                         b.Property(p => p.Productnumber);
                         b.Property(p => p.Name);
                         b.Property(p => p.Description);
+
+                        b.HasKey(p => p.ProductId);
+
                         b.ToTable("Products");
                     });
                 });

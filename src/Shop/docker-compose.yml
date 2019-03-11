@@ -40,8 +40,8 @@ services:
     environment:
       - ACCEPT_EULA=Y
 
-  productsearchserviceapi:
-    image: shop/productsearchserviceapi:latest
+  productsearchservice.api:
+    image: shop/productsearchservice.api:latest
     build: ProductSearchService/ProductSearchService.API
     container_name: productsearchservice.api
     depends_on:
@@ -51,6 +51,16 @@ services:
       - "5100:5100"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
+  
+  productsearchservice.eventlistener:
+    image: shop/productsearchservice.eventlistener:latest
+    build: ProductSearchService/ProductSearchService.EventListener
+    container_name: productsearchservice.eventlistener
+    depends_on:
+      - rabbitmq
+      - sqlserver
+    environment:
+      - SHOP_ENVIRONMENT=Production
 
 volumes:
   sqlserverdata:

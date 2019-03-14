@@ -40,10 +40,15 @@ services:
     ports:
       - "9200:9200"
 
-  # kibana:
-  #   image: docker.elastic.co/kibana/kibana:6.6.2
-  #   volumes:
-  #     - ./kibana.yml:/usr/share/kibana/con
+  kibana:
+    image: docker.elastic.co/kibana/kibana:6.6.2
+    container_name: kibana
+    depends_on:
+      - elastic
+    ports:
+      - "5601:5601"
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elastic:9200
 
   mailserver:
     image: djfarrelly/maildev

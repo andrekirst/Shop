@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
-using System;
+﻿using System;
 
 namespace ProductSearchService.EventListener.Messaging
 {
@@ -23,7 +22,5 @@ namespace ProductSearchService.EventListener.Messaging
             : base(messageId: messageId, messageType: messageType, timestamp: timestamp)
         {
         }
-
-        public virtual EventId EventId { get; }
     }
 }

@@ -1,10 +1,10 @@
 ﻿using System.Collections.Generic;
-using System.Data.SqlClient;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
+using Elasticsearch.Net;
 using Microsoft.Extensions.Logging;
-using ProductSearchService.API.DataAccess;
+using Newtonsoft.Json.Linq;
 using ProductSearchService.API.Model;
 
 namespace ProductSearchService.API.Repositories
@@ -12,33 +12,71 @@ namespace ProductSearchService.API.Repositories
     public class ProductsRepository : IProductsRepository
     {
         private readonly ILogger<ProductsRepository> _logger;
-        private readonly ProductSearchDbContext _dbContext;
+        private readonly IElasticLowLevelClient _client;
 
         public ProductsRepository(
-            ProductSearchDbContext dbContext,
-            ILogger<ProductsRepository> logger)
+            ILogger<ProductsRepository> logger,
+            IElasticLowLevelClient client)
         {
             _logger = logger;
-            _dbContext = dbContext;
+            _client = client;
         }
+
+        private string Index => "productssearch";
+
+        private string Type => "products";
 
         public async Task<List<Product>> GetProductsByFilter(string filter, CancellationToken cancellationToken)
         {
-            var filterParameter = new SqlParameter(parameterName: "Filter", value: $"%{filter.Trim()}%");
-            return await _dbContext.Products.FromSql(sql:
-                    "SELECT [ProductId], [Productnumber], [Name], [Description] FROM [dbo].[Products]" +
-                    "WHERE [Productnumber] LIKE @Filter " +
-                    "OR [Name] LIKE @Filter " +
-                    "OR [Description] LIKE @Filter",
-                    filterParameter)
-                    .ToListAsync(cancellationToken: cancellationToken);
+            var response = await _client.SearchAsync<StringResponse>(
+                index: Index,
+                type: Type,
+                body: PostData.Serializable(
+                    o: new
+                    {
+                        query = new
+                        {
+                            query_string = new
+                            {
+                                query = $"*{filter}*"
+                            }
+                        }
+                    }), ctx: cancellationToken);
+            
+            if (response.Success)
+            {
+                JObject parsedBody = JObject.Parse(json: response.Body);
+                return parsedBody[propertyName: "hits"][key: "hits"]
+                    .Select(selector: s => s["_source"].ToObject<Product>())
+                    .ToList();
+            }
+
+            return null;
         }
 
         public async Task<Product> GetProductByProductnumber(string productnumber, CancellationToken cancellationToken)
         {
-            return await _dbContext.Products.FirstOrDefaultAsync(
-                predicate: p => p.Productnumber == productnumber,
-                cancellationToken: cancellationToken);
+            var response = await _client.GetAsync<StringResponse>(
+                index: Index,
+                type: Type,
+                id: productnumber,
+                ctx: cancellationToken);
+
+            if (response.Success)
+            {
+                JObject parsedBody = JObject.Parse(json: response.Body);
+
+                bool productFound = parsedBody.Value<bool>(key: "found");
+
+                if (productFound)
+                {
+                    return parsedBody
+                        .SelectToken(path: "_source")
+                        .ToObject<Product>();
+                }
+            }
+
+            return null;
         }
     }
 }

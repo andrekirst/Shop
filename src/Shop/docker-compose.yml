@@ -5,7 +5,7 @@ services:
     image: rabbitmq:3-management
     container_name: rabbitmq
     volumes:
-      - rabbitmqdata:/DockerData/Shop/RabbitMq
+      - data.rabbitmq:/DockerData/Shop/RabbitMq
     ports:
       - "15672:15672"
       - "5672:5672"
@@ -13,17 +13,37 @@ services:
       - RABBITMQ_DEFAULT_USER=rabbitmquser
       - RABBITMQ_DEFAULT_PASS=01031990Pc
 
-  sqlserver:
-    image: microsoft/mssql-server-linux:2017-CU12
-    container_name: sqlserver
-    volumes:
-      - sqlserverdata:/DockerData/Shop/SqlServer
-    ports:
-      - "1433:1433"
+  # sqlserver:
+  #   image: microsoft/mssql-server-linux:2017-CU12
+  #   container_name: sqlserver
+  #   volumes:
+  #     - sqlserverdata:/DockerData/Shop/SqlServer
+  #   ports:
+  #     - "1433:1433"
+  #   environment:
+  #     - ACCEPT_EULA=Y
+  #     - MSSQL_PID=Developer
+  #     - SA_PASSWORD=01031990Pc
+  elastic:
+    image: docker.elastic.co/elasticsearch/elasticsearch:6.6.2
+    container_name: elastic
     environment:
-      - ACCEPT_EULA=Y
-      - MSSQL_PID=Developer
-      - SA_PASSWORD=01031990Pc
+      - cluster.name=elastic-shop-cluster
+      - bootstrap.memory_lock=true
+      # - "ES_JAVA_OPTS=-Xms512 -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - data.elastic:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+
+  # kibana:
+  #   image: docker.elastic.co/kibana/kibana:6.6.2
+  #   volumes:
+  #     - ./kibana.yml:/usr/share/kibana/con
 
   mailserver:
     image: djfarrelly/maildev
@@ -46,7 +66,7 @@ services:
     container_name: productsearchservice.api
     depends_on:
       - rabbitmq
-      - sqlserver
+      - elastic
     ports:
       - "5100:5100"
     environment:
@@ -58,12 +78,12 @@ services:
     container_name: productsearchservice.eventlistener
     depends_on:
       - rabbitmq
-      - sqlserver
+      - elastic
     environment:
       - SHOP_ENVIRONMENT=Production
 
 volumes:
-  sqlserverdata:
-    external: true    
-  rabbitmqdata:
+  data.elastic:
+    external: true
+  data.rabbitmq:
     external: true

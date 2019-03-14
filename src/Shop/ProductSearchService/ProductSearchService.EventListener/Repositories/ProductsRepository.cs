@@ -1,45 +1,30 @@
-﻿using Microsoft.EntityFrameworkCore;
-using ProductSearchService.EventListener.DataAccess;
-using ProductSearchService.EventListener.Model;
-using Serilog;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
+using Elasticsearch.Net;
 
 namespace ProductSearchService.EventListener.Repositories
 {
     public class ProductsRepository : IProductsRepository
     {
-        private readonly ProductSearchDbContext _dbContext;
+        private readonly ElasticLowLevelClient _client;
 
-        public ProductsRepository(ProductSearchDbContext dbContext)
+        public ProductsRepository(ElasticLowLevelClient client)
         {
-            _dbContext = dbContext;
+            _client = client;
         }
 
         public async Task<bool> CreateProduct(string productnumber, string name, string description)
         {
-            try
-            {
-                bool existsProduct = await _dbContext.Products.AnyAsync(predicate: product => product.Productnumber == productnumber);
-
-                if (existsProduct)
-                {
-                    return false;
-                }
-
-                await _dbContext.Products.AddAsync(entity: new Product
+            StringResponse response = await _client.IndexAsync<StringResponse>(
+                index: "productssearch",
+                type: "products",
+                id: productnumber,
+                body: PostData.Serializable(o: new
                 {
                     Productnumber = productnumber,
                     Name = name,
                     Description = description
-                });
-                await _dbContext.SaveChangesAsync(acceptAllChangesOnSuccess: true);
-                return true;
-            }
-            catch (System.Exception ex)
-            {
-                Log.Error(exception: ex, messageTemplate: ex.Message);
-                return false;
-            }
+                }));
+            return response.Success;
         }
     }
 }

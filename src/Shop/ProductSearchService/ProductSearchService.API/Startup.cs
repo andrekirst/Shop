@@ -3,11 +3,10 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.HealthChecks;
-using ProductSearchService.API.DataAccess;
 using Swashbuckle.AspNetCore.Swagger;
-using Microsoft.EntityFrameworkCore;
 using AutoMapper;
+using Elasticsearch.Net;
+using FluentTimeSpan;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using ProductSearchService.API.Repositories;
@@ -36,20 +35,13 @@ namespace ProductSearchService.API
             string connectionString = ConnectionString;
             _logger.LogDebug(message: $"ConnectionString: {connectionString}");
 
-            services.AddDbContext<ProductSearchDbContext>(optionsAction: options =>
-            {
-                options.UseSqlServer(connectionString: connectionString);
-                options.EnableDetailedErrors();
-                options.UseQueryTrackingBehavior(queryTrackingBehavior: QueryTrackingBehavior.NoTracking);
-            });
-
             services.AddTransient<IMessageSerializer, JsonMessageSerializer>();
 
             var configSection = Configuration.GetSection(key: "RabbitMQ");
             string hostname = configSection[key: "Hostname"];
             string username = configSection[key: "Username"];
             string password = configSection[key: "Password"];
-            services.AddTransient<IMessagePublisher>(implementationFactory: (sp) => new RabbitMessageQueueMessagePublisher(
+            services.AddTransient<IMessagePublisher>(implementationFactory: sp => new RabbitMessageQueueMessagePublisher(
                 hostname: hostname,
                 username: username,
                 password: password,
@@ -61,7 +53,16 @@ namespace ProductSearchService.API
                 .AddMvc()
                 .AddNewtonsoftJson();
 
-            services.AddTransient<IProductsRepository, ProductsRepository>();
+            var node = new Uri(uriString: ConnectionString);
+            var config = new ConnectionConfiguration(uri: node)
+                .RequestTimeout(timeout: 2.Minutes());
+            var client = new ElasticLowLevelClient(settings: config);
+
+            services.AddTransient<IElasticLowLevelClient, ElasticLowLevelClient>();
+            services.AddTransient<IProductsRepository, ProductsRepository>(implementationFactory: sp =>
+                new ProductsRepository(
+                    logger: sp.GetService<ILogger<ProductsRepository>>(),
+                    client: client));
 
             services.AddSwaggerGen(setupAction: c =>
             {
@@ -70,15 +71,14 @@ namespace ProductSearchService.API
 
             services.AddHealthChecks(checks: checks =>
             {
-                checks.WithDefaultCacheDuration(duration: TimeSpan.FromSeconds(value: 1));
-                checks.AddSqlCheck(name: "ProductSearchConnectionString", connectionString: ConnectionString);
+                checks.WithDefaultCacheDuration(duration: 1.Seconds());
             });
         }
 
         private string ConnectionString => Configuration.GetConnectionString(name: "ProductSearchConnectionString");
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env, IApplicationLifetime lifetime, ProductSearchDbContext dbContext)
+        public void Configure(IApplicationBuilder app, IHostingEnvironment env, IApplicationLifetime lifetime)
         {
             Log.Logger = new LoggerConfiguration()
                 .ReadFrom.Configuration(configuration: Configuration)

@@ -1,7 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Polly;
-using ProductSearchService.EventListener.DataAccess;
+﻿using Microsoft.Extensions.Configuration;
 using ProductSearchService.EventListener.EventHandlers;
 using ProductSearchService.EventListener.Messaging;
 using ProductSearchService.EventListener.Repositories;
@@ -9,6 +6,7 @@ using Serilog;
 using System;
 using System.IO;
 using System.Threading;
+using Elasticsearch.Net;
 using FluentTimeSpan;
 
 namespace ProductSearchService.EventListener
@@ -57,21 +55,12 @@ namespace ProductSearchService.EventListener
                 routingKey: "");
 
             string connectionString = ConnectionString;
-            var dbContextOptions = new DbContextOptionsBuilder<ProductSearchDbContext>()
-                .UseSqlServer(connectionString: connectionString)
-                .Options;
+            var node = new Uri(uriString: connectionString);
+            var config = new ConnectionConfiguration(uri: node)
+                .RequestTimeout(timeout: 2.Minutes());
+            var client = new ElasticLowLevelClient(settings: config);
 
-            var dbContext = new ProductSearchDbContext(options: dbContextOptions);
-
-            Policy
-                .Handle<Exception>()
-                .WaitAndRetry(
-                    retryCount: 5,
-                    sleepDurationProvider: r => 5.Seconds(),
-                    onRetry: (ex, ts) => { Log.Error(messageTemplate: "Error connecting to DB. Retrying in 5 sec."); })
-                .Execute(action: () => dbContext.Database.Migrate());
-
-            ProductsRepository repository = new ProductsRepository(dbContext: dbContext);
+            ProductsRepository repository = new ProductsRepository(client: client);
             JsonMessageSerializer messageSerializer = new JsonMessageSerializer();
 
             ProductCreatedEventHandler productCreatedEventHandler = new ProductCreatedEventHandler(

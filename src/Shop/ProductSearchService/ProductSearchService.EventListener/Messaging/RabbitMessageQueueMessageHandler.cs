@@ -64,7 +64,7 @@ namespace ProductSearchService.EventListener.Messaging
 
                     _connection = factory.CreateConnection();
                     _channel = _connection.CreateModel();
-                    _channel.ExchangeDeclare(exchange: Exchange, type: ExchangeType.Headers, durable: true, autoDelete: false);
+                    _channel.ExchangeDeclare(exchange: Exchange, type: ExchangeType.Headers, durable: true);
                     _channel.QueueDeclare(queue: Queue, durable: true, autoDelete: false, exclusive: false);
                     _channel.QueueBind(queue: Queue, exchange: Exchange, routingKey: RoutingKey);
                     _consumer = new AsyncEventingBasicConsumer(model: _channel);

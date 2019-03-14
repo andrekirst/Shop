@@ -24,7 +24,7 @@ namespace ProductSearchService.API.Repositories
 
         public async Task<List<Product>> GetProductsByFilter(string filter, CancellationToken cancellationToken)
         {
-            var filterParameter = new SqlParameter("Filter", $"%{filter.Trim()}%");
+            var filterParameter = new SqlParameter(parameterName: "Filter", value: $"%{filter.Trim()}%");
             return await _dbContext.Products.FromSql(sql:
                     "SELECT [ProductId], [Productnumber], [Name], [Description] FROM [dbo].[Products]" +
                     "WHERE [Productnumber] LIKE @Filter " +

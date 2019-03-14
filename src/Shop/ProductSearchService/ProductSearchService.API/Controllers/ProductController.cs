@@ -11,7 +11,7 @@ using System.Linq;
 
 namespace ProductSearchService.API.Controllers
 {
-    [Route("api/[controller]")]
+    [Route(template: "api/[controller]")]
     [ApiController]
     public class ProductController : ControllerBase
     {
@@ -32,7 +32,7 @@ namespace ProductSearchService.API.Controllers
         [HttpGet]
         [ProducesResponseType(statusCode: 404)]
         [ProducesResponseType(statusCode: 200, Type = typeof(Product))]
-        [Route("{productnumber}", Name = "GetByProductnumber")]
+        [Route(template: "{productnumber}", Name = "GetByProductnumber")]
         public async Task<ActionResult<Product>> GetByProductnumber(string productnumber, CancellationToken cancellationToken)
         {
             try
@@ -44,14 +44,14 @@ namespace ProductSearchService.API.Controllers
                 if (product != null)
                 {
                     await PublishProductSelectedEvent(product: product);
-                    return Ok(product);
+                    return Ok(value: product);
                 }
 
                 return NotFound();
             }
             catch (TaskCanceledException exception)
             {
-                _logger.LogError(exception, message: $"GetByProductnumber \"{productnumber}\" cancelled");
+                _logger.LogError(exception: exception, message: $"GetByProductnumber \"{productnumber}\" cancelled");
             }
             return NotFound();
         }
@@ -59,7 +59,7 @@ namespace ProductSearchService.API.Controllers
         [HttpGet]
         [ProducesResponseType(statusCode: 404)]
         [ProducesResponseType(statusCode: 200, Type = typeof(List<Product>))]
-        [Route("byfilter/{filter}", Name = "GetByFilter")]
+        [Route(template: "byfilter/{filter}", Name = "GetByFilter")]
         public async Task<ActionResult<List<Product>>> GetByFilter(string filter, CancellationToken cancellationToken)
         {
             try
@@ -68,15 +68,15 @@ namespace ProductSearchService.API.Controllers
                     filter: filter,
                     cancellationToken: cancellationToken);
 
-                await PublishProductsSearchedEvent(products, filter);
-                return Ok(products);
+                await PublishProductsSearchedEvent(products: products, filter: filter);
+                return Ok(value: products);
             }
             catch (TaskCanceledException exception)
             {
-                _logger.LogError(exception, message: $"GetByFilter \"{filter}\" cancelled");
+                _logger.LogError(exception: exception, message: $"GetByFilter \"{filter}\" cancelled");
             }
 
-            _logger.LogInformation($"No data found for filter {filter}.");
+            _logger.LogInformation(message: $"No data found for filter {filter}.");
             return NotFound();
         }
 
@@ -85,8 +85,8 @@ namespace ProductSearchService.API.Controllers
             ProductsSearchedEvent @event = new ProductsSearchedEvent(
                 filter: filter,
                 productsFound: products != null && products.Any(),
-                numberOfProductsFound: products.Count);
-            await _messagePublisher.SendMessageAsync(@event, "ProductsSearchedEvent");
+                numberOfProductsFound: products?.Count ?? 0);
+            await _messagePublisher.SendMessageAsync(message: @event, messageType: "ProductsSearchedEvent");
         }
 
         private async Task PublishProductSelectedEvent(Product product)
@@ -95,7 +95,7 @@ namespace ProductSearchService.API.Controllers
                     productnumber: product.Productnumber,
                     name: product.Name,
                     description: product.Description);
-            await _messagePublisher.SendMessageAsync(@event, "ProductSelectedEvent");
+            await _messagePublisher.SendMessageAsync(message: @event, messageType: "ProductSelectedEvent");
         }
     }
 }

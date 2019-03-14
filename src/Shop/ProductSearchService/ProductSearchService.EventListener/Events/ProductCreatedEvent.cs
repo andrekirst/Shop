@@ -6,7 +6,7 @@ namespace ProductSearchService.EventListener.Events
     public class ProductCreatedEvent : Event
     {
         public ProductCreatedEvent(Guid messageId, string productnumber, string name, string description)
-            : base(messageId)
+            : base(messageId: messageId)
         {
             Productnumber = productnumber;
             Name = name;

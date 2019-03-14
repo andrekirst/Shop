@@ -6,7 +6,6 @@ namespace ProductSearchService.EventListener.Messaging
     public class Event : Message
     {
         public Event()
-            : base()
         {
         }
 

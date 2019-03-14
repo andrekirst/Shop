@@ -2,22 +2,20 @@
 using Polly;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Framing;
-using Serilog;
 using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace ProductSearchService.API.Messaging
 {
-    public class RabbitMQMessagePublisher : IMessagePublisher, IDisposable
+    public class RabbitMessageQueueMessagePublisher : IMessagePublisher, IDisposable
     {
         private IConnection _connection;
         private IModel _channel;
         private readonly IMessageSerializer _messageSerializer;
-        private readonly ILogger<RabbitMQMessagePublisher> _logger;
+        private readonly ILogger<RabbitMessageQueueMessagePublisher> _logger;
 
-        public RabbitMQMessagePublisher(string hostname, string username, string password, string exchange, IMessageSerializer messageSerializer, ILogger<RabbitMQMessagePublisher> logger)
+        public RabbitMessageQueueMessagePublisher(string hostname, string username, string password, string exchange, IMessageSerializer messageSerializer, ILogger<RabbitMessageQueueMessagePublisher> logger)
         {
             Hostname = hostname;
             Username = username;
@@ -39,21 +37,21 @@ namespace ProductSearchService.API.Messaging
 
         public Task SendMessageAsync(object message, string messageType)
         {
-            return Task.Run(() =>
+            return Task.Run(action: () =>
                 Policy
                     .Handle<Exception>()
                     .WaitAndRetry(
                         retryCount: 9,
-                        sleepDurationProvider: r => TimeSpan.FromSeconds(5),
+                        sleepDurationProvider: r => TimeSpan.FromSeconds(value: 5),
                         onRetry: (ex, ts) =>
                         {
                             _logger.LogError(exception: ex, message: "Error connecting to RabbitMQ. Retrying in 5 sec.");
                         })
                     .Execute(action: () =>
                     {
-                        BasicProperties publishProperties = CreateProperties(message, messageType);
-                        string data = _messageSerializer.Serialize(message);
-                        var body = _messageSerializer.Encoding.GetBytes(data);
+                        BasicProperties publishProperties = CreateProperties(message: message, messageType: messageType);
+                        string data = _messageSerializer.Serialize(value: message);
+                        var body = _messageSerializer.Encoding.GetBytes(s: data);
                         PublishMessage(
                             publishProperties: publishProperties,
                             message: body);
@@ -92,7 +90,7 @@ namespace ProductSearchService.API.Messaging
             if (message is Event @event)
             {
                 properties.MessageId = @event.MessageId.ToString();
-                properties.Timestamp = new AmqpTimestamp(((DateTimeOffset)@event.Timestamp).ToUnixTimeSeconds());
+                properties.Timestamp = new AmqpTimestamp(unixTime: ((DateTimeOffset)@event.Timestamp).ToUnixTimeSeconds());
             }
 
             return properties;

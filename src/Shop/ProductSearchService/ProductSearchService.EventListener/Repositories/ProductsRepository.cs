@@ -1,4 +1,5 @@
-﻿using ProductSearchService.EventListener.DataAccess;
+﻿using Microsoft.EntityFrameworkCore;
+using ProductSearchService.EventListener.DataAccess;
 using ProductSearchService.EventListener.Model;
 using Serilog;
 using System.Threading.Tasks;
@@ -16,9 +17,15 @@ namespace ProductSearchService.EventListener.Repositories
 
         public async Task<bool> CreateProduct(string productnumber, string name, string description)
         {
-            var x = _dbContext.ChangeTracker;
             try
             {
+                bool existsProduct = await _dbContext.Products.AnyAsync(predicate: product => product.Productnumber == productnumber);
+
+                if (existsProduct)
+                {
+                    return false;
+                }
+
                 await _dbContext.Products.AddAsync(entity: new Product
                 {
                     Productnumber = productnumber,
@@ -30,7 +37,7 @@ namespace ProductSearchService.EventListener.Repositories
             }
             catch (System.Exception ex)
             {
-                Log.Error(ex, ex.Message);
+                Log.Error(exception: ex, messageTemplate: ex.Message);
                 return false;
             }
         }

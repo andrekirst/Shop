@@ -1,7 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Polly;
 using ProductSearchService.EventListener.Model;
-using System;
 
 namespace ProductSearchService.EventListener.DataAccess
 {
@@ -10,7 +8,7 @@ namespace ProductSearchService.EventListener.DataAccess
         private readonly DbContextOptions<ProductSearchDbContext> _options;
 
         public ProductSearchDbContext(DbContextOptions<ProductSearchDbContext> options)
-            : base(options)
+            : base(options: options)
         {
             _options = options;
         }
@@ -19,11 +17,11 @@ namespace ProductSearchService.EventListener.DataAccess
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<Product>().HasKey(b => b.ProductId);
-            modelBuilder.Entity<Product>().HasIndex(p => p.Productnumber).IsUnique();
-            modelBuilder.Entity<Product>().ToTable("Products");
+            modelBuilder.Entity<Product>().HasKey(keyExpression: b => b.ProductId);
+            modelBuilder.Entity<Product>().HasIndex(indexExpression: p => p.Productnumber).IsUnique();
+            modelBuilder.Entity<Product>().ToTable(name: "Products");
 
-            base.OnModelCreating(modelBuilder);
+            base.OnModelCreating(modelBuilder: modelBuilder);
         }
 
         public void MigrateDB()

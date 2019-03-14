@@ -18,7 +18,7 @@ namespace ProductSearchService.EventListener.Messaging
                 DateTimeZoneHandling = DateTimeZoneHandling.Utc
             };
 
-            _serializerSettings.Converters.Add(new StringEnumConverter
+            _serializerSettings.Converters.Add(item: new StringEnumConverter
             {
                 NamingStrategy = new CamelCaseNamingStrategy()
             });
@@ -32,6 +32,6 @@ namespace ProductSearchService.EventListener.Messaging
             => JsonConvert.SerializeObject(value: value, settings: _serializerSettings);
 
         public JObject Deserialize(string value)
-            => JsonConvert.DeserializeObject<JObject>(value, _serializerSettings);
+            => JsonConvert.DeserializeObject<JObject>(value: value, settings: _serializerSettings);
     }
 }

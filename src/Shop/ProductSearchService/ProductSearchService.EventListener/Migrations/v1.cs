@@ -8,16 +8,16 @@ using System;
 
 namespace ProductSearchService.API.Migrations
 {
-    [DbContext(typeof(ProductSearchDbContext))]
-    [Migration("v1")]
+    [DbContext(contextType: typeof(ProductSearchDbContext))]
+    [Migration(id: "v1")]
     public class v1 : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             Policy
                 .Handle<Exception>()
-                .WaitAndRetry(5, r => TimeSpan.FromSeconds(5))
-                .Execute(() =>
+                .WaitAndRetry(retryCount: 5, sleepDurationProvider: r => TimeSpan.FromSeconds(value: 5))
+                .Execute(action: () =>
                 {
                     migrationBuilder.CreateTable(
                         name: "Products",
@@ -30,8 +30,8 @@ namespace ProductSearchService.API.Migrations
                         },
                         constraints: table =>
                         {
-                            table.PrimaryKey(name: "PK_Products_ProductId", column => column.ProductId);
-                            table.UniqueConstraint("UNIQUE_Products_Productnumber", column => column.Productnumber);
+                            table.PrimaryKey(name: "PK_Products_ProductId", columns: column => column.ProductId);
+                            table.UniqueConstraint(name: "UNIQUE_Products_Productnumber", columns: column => column.Productnumber);
                         });
                 });
         }
@@ -40,8 +40,8 @@ namespace ProductSearchService.API.Migrations
         {
             Policy
                 .Handle<Exception>()
-                .WaitAndRetry(5, r => TimeSpan.FromSeconds(5))
-                .Execute(() =>
+                .WaitAndRetry(retryCount: 5, sleepDurationProvider: r => TimeSpan.FromSeconds(value: 5))
+                .Execute(action: () =>
                 {
                     migrationBuilder.DropTable(name: "Products");
                 });
@@ -51,25 +51,25 @@ namespace ProductSearchService.API.Migrations
         {
             Policy
                 .Handle<Exception>()
-                .WaitAndRetry(5, r => TimeSpan.FromSeconds(5))
-                .Execute(() =>
+                .WaitAndRetry(retryCount: 5, sleepDurationProvider: r => TimeSpan.FromSeconds(value: 5))
+                .Execute(action: () =>
                 {
-                    modelBuilder.HasAnnotation("Version", "1.0");
+                    modelBuilder.HasAnnotation(annotation: "Version", value: "1.0");
 
-                    modelBuilder.Entity<Product>(b =>
+                    modelBuilder.Entity<Product>(buildAction: b =>
                     {
-                        b.Property(p => p.ProductId).ValueGeneratedOnAdd();
-                        b.Property(p => p.Productnumber);
-                        b.Property(p => p.Name);
-                        b.Property(p => p.Description);
+                        b.Property(propertyExpression: p => p.ProductId).ValueGeneratedOnAdd();
+                        b.Property(propertyExpression: p => p.Productnumber);
+                        b.Property(propertyExpression: p => p.Name);
+                        b.Property(propertyExpression: p => p.Description);
 
-                        b.HasKey(p => p.ProductId);
+                        b.HasKey(keyExpression: p => p.ProductId);
 
-                        b.ToTable("Products");
+                        b.ToTable(name: "Products");
                     });
                 });
 
-            base.BuildTargetModel(modelBuilder);
+            base.BuildTargetModel(modelBuilder: modelBuilder);
         }
     }
 }

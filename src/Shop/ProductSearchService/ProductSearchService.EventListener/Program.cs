@@ -9,6 +9,7 @@ using Serilog;
 using System;
 using System.IO;
 using System.Threading;
+using FluentTimeSpan;
 
 namespace ProductSearchService.EventListener
 {
@@ -20,19 +21,19 @@ namespace ProductSearchService.EventListener
 
         static Program()
         {
-            ShopEnvironment = Environment.GetEnvironmentVariable("SHOP_ENVIRONMENT") ?? "Development";
+            ShopEnvironment = Environment.GetEnvironmentVariable(variable: "SHOP_ENVIRONMENT") ?? "Development";
 
             Config = new ConfigurationBuilder()
-                .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-                .AddJsonFile($"appsettings.{ShopEnvironment}.json", optional: false, reloadOnChange: true)
+                .SetBasePath(basePath: Directory.GetCurrentDirectory())
+                .AddJsonFile(path: "appsettings.json", optional: false, reloadOnChange: true)
+                .AddJsonFile(path: $"appsettings.{ShopEnvironment}.json", optional: false, reloadOnChange: true)
                 .Build();
 
             Log.Logger = new LoggerConfiguration()
-                .ReadFrom.Configuration(Config)
+                .ReadFrom.Configuration(configuration: Config)
                 .CreateLogger();
 
-            Log.Information($"Environment: {ShopEnvironment}");
+            Log.Information(messageTemplate: $"Environment: {ShopEnvironment}");
         }
 
         public static void Main(string[] args)
@@ -42,12 +43,12 @@ namespace ProductSearchService.EventListener
 
         private static void Startup()
         {
-            var configSection = Config.GetSection("RabbitMQ");
-            string hostname = configSection["Hostname"];
-            string username = configSection["Username"];
-            string password = configSection["Password"];
+            var configSection = Config.GetSection(key: "RabbitMQ");
+            string hostname = configSection[key: "Hostname"];
+            string username = configSection[key: "Username"];
+            string password = configSection[key: "Password"];
 
-            RabbitMQMessageHandler messageHandlerProductCreated = new RabbitMQMessageHandler(
+            RabbitMessageQueueMessageHandler messageHandlerProductCreated = new RabbitMessageQueueMessageHandler(
                 hostname: hostname,
                 username: username,
                 password: password,
@@ -57,38 +58,41 @@ namespace ProductSearchService.EventListener
 
             string connectionString = ConnectionString;
             var dbContextOptions = new DbContextOptionsBuilder<ProductSearchDbContext>()
-                .UseSqlServer(connectionString)
+                .UseSqlServer(connectionString: connectionString)
                 .Options;
 
-            var dbContext = new ProductSearchDbContext(dbContextOptions);
+            var dbContext = new ProductSearchDbContext(options: dbContextOptions);
 
             Policy
                 .Handle<Exception>()
-                .WaitAndRetry(5, r => TimeSpan.FromSeconds(5), (ex, ts) => { Log.Error("Error connecting to DB. Retrying in 5 sec."); })
-                .Execute(() => dbContext.Database.Migrate());
+                .WaitAndRetry(
+                    retryCount: 5,
+                    sleepDurationProvider: r => 5.Seconds(),
+                    onRetry: (ex, ts) => { Log.Error(messageTemplate: "Error connecting to DB. Retrying in 5 sec."); })
+                .Execute(action: () => dbContext.Database.Migrate());
 
-            ProductsRepository repository = new ProductsRepository(dbContext);
+            ProductsRepository repository = new ProductsRepository(dbContext: dbContext);
             JsonMessageSerializer messageSerializer = new JsonMessageSerializer();
 
             ProductCreatedEventHandler productCreatedEventHandler = new ProductCreatedEventHandler(
-                messageHandlerProductCreated,
-                repository,
-                messageSerializer);
+                messageHandler: messageHandlerProductCreated,
+                repository: repository,
+                messageSerializer: messageSerializer);
             productCreatedEventHandler.Start();
 
             if (ShopEnvironment == "Development")
             {
-                Log.Information("ProductSearchService.Eventhandler started.");
-                Console.WriteLine("Press any key to stop...");
-                Console.ReadKey(true);
+                Log.Information(messageTemplate: "ProductSearchService.Eventhandler started.");
+                Console.WriteLine(value: "Press any key to stop...");
+                Console.ReadKey(intercept: true);
                 productCreatedEventHandler.Stop();
             }
             else
             {
-                Log.Information("ProductSearchService.Eventhandler started.");
+                Log.Information(messageTemplate: "ProductSearchService.Eventhandler started.");
                 while (true)
                 {
-                    Thread.Sleep(10000);
+                    Thread.Sleep(millisecondsTimeout: 10000);
                 }
             }
         }

@@ -5,10 +5,11 @@ using Serilog;
 using System;
 using System.Text;
 using System.Threading.Tasks;
+using FluentTimeSpan;
 
 namespace ProductSearchService.EventListener.Messaging
 {
-    public class RabbitMQMessageHandler : IMessageHandler
+    public class RabbitMessageQueueMessageHandler : IMessageHandler
     {
         private IMessageHandlerCallback _callback;
         private IConnection _connection;
@@ -16,7 +17,7 @@ namespace ProductSearchService.EventListener.Messaging
         private AsyncEventingBasicConsumer _consumer;
         private string _consumerTag;
 
-        public RabbitMQMessageHandler(string hostname, string username, string password, string exchange, string queue, string routingKey)
+        public RabbitMessageQueueMessageHandler(string hostname, string username, string password, string exchange, string queue, string routingKey)
         {
             Hostname = hostname;
             Username = username;
@@ -26,17 +27,17 @@ namespace ProductSearchService.EventListener.Messaging
             RoutingKey = routingKey;
         }
 
-        public string Hostname { get; }
+        private string Hostname { get; }
 
-        public string Username { get; }
+        private string Username { get; }
 
-        public string Password { get; }
+        private string Password { get; }
 
-        public string Exchange { get; }
+        private string Exchange { get; }
 
-        public string Queue { get; }
+        private string Queue { get; }
 
-        public string RoutingKey { get; }
+        private string RoutingKey { get; }
 
         public void Start(IMessageHandlerCallback callback)
         {
@@ -44,8 +45,14 @@ namespace ProductSearchService.EventListener.Messaging
 
             Policy
                 .Handle<Exception>()
-                .WaitAndRetry(9, r => TimeSpan.FromSeconds(5), (ex, ts) => { Log.Error("Error connecting to RabbitMQ. Retrying in 5 sec."); })
-                .Execute(() =>
+                .WaitAndRetry(
+                    retryCount: 9,
+                    sleepDurationProvider: r => 5.Seconds(),
+                    onRetry: (ex, ts) =>
+                    {
+                        Log.Error(messageTemplate: "Error connecting to RabbitMQ. Retrying in 5 sec.");
+                    })
+                .Execute(action: () =>
                 {
                     var factory = new ConnectionFactory
                     {
@@ -59,8 +66,8 @@ namespace ProductSearchService.EventListener.Messaging
                     _channel = _connection.CreateModel();
                     _channel.ExchangeDeclare(exchange: Exchange, type: ExchangeType.Headers, durable: true, autoDelete: false);
                     _channel.QueueDeclare(queue: Queue, durable: true, autoDelete: false, exclusive: false);
-                    _channel.QueueBind(queue: Queue, exchange: Exchange, RoutingKey);
-                    _consumer = new AsyncEventingBasicConsumer(_channel);
+                    _channel.QueueBind(queue: Queue, exchange: Exchange, routingKey: RoutingKey);
+                    _consumer = new AsyncEventingBasicConsumer(model: _channel);
                     _consumer.Received += Consumer_Received;
                     _consumerTag = _channel.BasicConsume(queue: Queue, autoAck: false, consumer: _consumer);
                 });
@@ -68,14 +75,14 @@ namespace ProductSearchService.EventListener.Messaging
 
         public void Stop()
         {
-            _channel.BasicCancel(_consumerTag);
-            _channel.Close(200, "Goodbye");
-            _connection.Close(200, "Goodbye");
+            _channel.BasicCancel(consumerTag: _consumerTag);
+            _channel.Close(replyCode: 200, replyText: "Goodbye");
+            _connection.Close(reasonCode: 200, reasonText: "Goodbye");
         }
 
         private async Task Consumer_Received(object sender, BasicDeliverEventArgs @event)
         {
-            if (await HandleEvent(@event))
+            if (await HandleEvent(@event: @event))
             {
                 _channel.BasicAck(deliveryTag: @event.DeliveryTag, multiple: false);
             }
@@ -87,7 +94,8 @@ namespace ProductSearchService.EventListener.Messaging
 
         private Task<bool> HandleEvent(BasicDeliverEventArgs @event)
         {
-            string messageType = Encoding.UTF8.GetString(bytes: (byte[])@event.BasicProperties.Headers["MessageType"]);
+            // TODO IMessageSerializer
+            string messageType = Encoding.UTF8.GetString(bytes: (byte[])@event.BasicProperties.Headers[key: "MessageType"]);
             string body = Encoding.UTF8.GetString(bytes: @event.Body);
 
             return _callback.HandleMessageAsync(messageType: messageType, message: body);

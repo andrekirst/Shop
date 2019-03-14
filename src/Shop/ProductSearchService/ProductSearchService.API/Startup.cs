@@ -45,17 +45,17 @@ namespace ProductSearchService.API
 
             services.AddTransient<IMessageSerializer, JsonMessageSerializer>();
 
-            var configSection = Configuration.GetSection("RabbitMQ");
-            string hostname = configSection["Hostname"];
-            string username = configSection["Username"];
-            string password = configSection["Password"];
-            services.AddTransient<IMessagePublisher>((sp) => new RabbitMQMessagePublisher(
+            var configSection = Configuration.GetSection(key: "RabbitMQ");
+            string hostname = configSection[key: "Hostname"];
+            string username = configSection[key: "Username"];
+            string password = configSection[key: "Password"];
+            services.AddTransient<IMessagePublisher>(implementationFactory: (sp) => new RabbitMessageQueueMessagePublisher(
                 hostname: hostname,
                 username: username,
                 password: password,
                 exchange: "SearchLog",
                 messageSerializer: sp.GetService<IMessageSerializer>(),
-                logger: sp.GetService<ILogger<RabbitMQMessagePublisher>>()));
+                logger: sp.GetService<ILogger<RabbitMessageQueueMessagePublisher>>()));
 
             services
                 .AddMvc()
@@ -81,7 +81,7 @@ namespace ProductSearchService.API
         public void Configure(IApplicationBuilder app, IHostingEnvironment env, IApplicationLifetime lifetime, ProductSearchDbContext dbContext)
         {
             Log.Logger = new LoggerConfiguration()
-                .ReadFrom.Configuration(Configuration)
+                .ReadFrom.Configuration(configuration: Configuration)
                 .Enrich.WithMachineName()
                 .CreateLogger();
 
@@ -98,11 +98,6 @@ namespace ProductSearchService.API
                 c.SwaggerEndpoint(url: "/swagger/v1/swagger.json", name: "ProductSearchServiceAPI - v1");
             });
 
-            using (var scope = app.ApplicationServices.GetRequiredService<IServiceScopeFactory>().CreateScope())
-            {
-                scope.ServiceProvider.GetService<ProductSearchDbContext>().MigrateDB();
-            }
-
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
@@ -115,7 +110,7 @@ namespace ProductSearchService.API
 
             //app.UseHttpsRedirection();
 
-            app.UseRouting(routes =>
+            app.UseRouting(configure: routes =>
             {
                 routes.MapApplication();
             });
@@ -130,10 +125,10 @@ namespace ProductSearchService.API
                 config.CreateMap<SelectProductCommand, Product>();
                 config
                     .CreateMap<Product, SelectProductCommand>()
-                    .ForCtorParam("messageId", opt => opt.MapFrom(c => Guid.NewGuid()));
+                    .ForCtorParam(ctorParamName: "messageId", paramOptions: opt => opt.MapFrom(sourceMember: c => Guid.NewGuid()));
                 config
                     .CreateMap<SelectProductCommand, ProductSelectedEvent>()
-                    .ForCtorParam("messageId", opt => opt.MapFrom(c => Guid.NewGuid()));
+                    .ForCtorParam(ctorParamName: "messageId", paramOptions: opt => opt.MapFrom(sourceMember: c => Guid.NewGuid()));
             });
         }
     }

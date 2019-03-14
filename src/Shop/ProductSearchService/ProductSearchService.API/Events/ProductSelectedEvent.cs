@@ -7,7 +7,6 @@ namespace ProductSearchService.API.Events
     public class ProductSelectedEvent : Event
     {
         public ProductSelectedEvent(string productnumber, string name, string description)
-            : base()
         {
             Productnumber = productnumber;
             Name = name;
@@ -31,6 +30,6 @@ namespace ProductSearchService.API.Events
             return $"Productnumber: {Productnumber}, Name: {Name ?? "<Empty>"}, Description: {Description ?? "<Empty>"}";
         }
 
-        public override EventId EventId => new EventId(300000, MessageType);
+        public override EventId EventId => new EventId(id: 300000, name: MessageType);
     }
 }

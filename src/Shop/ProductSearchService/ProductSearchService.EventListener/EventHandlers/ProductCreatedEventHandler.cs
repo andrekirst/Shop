@@ -26,19 +26,19 @@ namespace ProductSearchService.EventListener.EventHandlers
                 return false;
             }
 
-            JObject messageObject = _messageSerializer.Deserialize(message);
+            JObject messageObject = _messageSerializer.Deserialize(value: message);
 
-            return await HandleAsync(messageObject.ToObject<ProductCreatedEvent>());
+            return await HandleAsync(@event: messageObject.ToObject<ProductCreatedEvent>());
         }
 
         private async Task<bool> HandleAsync(ProductCreatedEvent @event)
         {
-            return await _repository.CreateProduct(@event.Productnumber, @event.Name, @event.Description);
+            return await _repository.CreateProduct(productnumber: @event.Productnumber, name: @event.Name, description: @event.Description);
         }
 
         public void Start()
         {
-            _messageHandler.Start(this);
+            _messageHandler.Start(callback: this);
         }
 
         public void Stop()

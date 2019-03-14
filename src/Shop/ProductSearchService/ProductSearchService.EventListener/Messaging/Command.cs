@@ -5,7 +5,6 @@ namespace ProductSearchService.EventListener.Messaging
     public class Command : Message
     {
         public Command()
-            : base()
         {
         }
 

@@ -1,0 +1,14 @@
+heartbeat.monitors:
+  - type: http
+    schedule: '@every 5s'
+    urls:
+      - http://elastic:9200
+      - http://kibana:5601
+      - http://mailserver:4000
+      - http://logserver:5341
+      - http://productsearchservice.api:5100/health
+      - http://rabbitmq:15672
+
+output.elasticsearch:
+  hosts: ["http://elastic:9200"]
+  index: "heartbeat-%{[beat.version]}-%{+yyyy.MM.dd}"

@@ -1,4 +1,4 @@
-version: '3'
+version: '3.6'
 
 services:
   rabbitmq:
@@ -13,17 +13,6 @@ services:
       - RABBITMQ_DEFAULT_USER=rabbitmquser
       - RABBITMQ_DEFAULT_PASS=01031990Pc
 
-  # sqlserver:
-  #   image: microsoft/mssql-server-linux:2017-CU12
-  #   container_name: sqlserver
-  #   volumes:
-  #     - sqlserverdata:/DockerData/Shop/SqlServer
-  #   ports:
-  #     - "1433:1433"
-  #   environment:
-  #     - ACCEPT_EULA=Y
-  #     - MSSQL_PID=Developer
-  #     - SA_PASSWORD=01031990Pc
   elastic:
     image: docker.elastic.co/elasticsearch/elasticsearch:6.6.2
     container_name: elastic
@@ -49,6 +38,18 @@ services:
       - "5601:5601"
     environment:
       - ELASTICSEARCH_HOSTS=http://elastic:9200
+  
+  # heartbeat:
+  #   image: docker.elastic.co/beats/heartbeat:6.6.2
+  #   container_name: heartbeat
+  #   volumes:
+  #     - './heartbeat.yml:/usr/share/heartbeat/heartbeat.yml'
+  #   depends_on:
+  #     - elastic
+  #     - kibana
+  #   environment:
+  #     - setup.kibana.host=kibana:5601
+  #     - setup.elasticsearch.hosts=["elastic:9200"]
 
   mailserver:
     image: djfarrelly/maildev

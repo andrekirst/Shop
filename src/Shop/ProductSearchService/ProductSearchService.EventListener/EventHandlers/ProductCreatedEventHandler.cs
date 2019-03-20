@@ -1,5 +1,4 @@
-﻿using Newtonsoft.Json.Linq;
-using ProductSearchService.EventListener.Events;
+﻿using ProductSearchService.EventListener.Events;
 using ProductSearchService.EventListener.Messaging;
 using ProductSearchService.EventListener.Repositories;
 using System.Threading.Tasks;
@@ -26,24 +25,17 @@ namespace ProductSearchService.EventListener.EventHandlers
                 return false;
             }
 
-            JObject messageObject = _messageSerializer.Deserialize(value: message);
-
-            return await HandleAsync(@event: messageObject.ToObject<ProductCreatedEvent>());
+            return await HandleAsync(@event: _messageSerializer.Deserialize<ProductCreatedEvent>(value: message));
         }
 
-        private async Task<bool> HandleAsync(ProductCreatedEvent @event)
-        {
-            return await _repository.CreateProduct(productnumber: @event.Productnumber, name: @event.Name, description: @event.Description);
-        }
+        private Task<bool> HandleAsync(ProductCreatedEvent @event)
+            => _repository.CreateProduct(
+                productnumber: @event.Productnumber,
+                name: @event.Name,
+                description: @event.Description);
 
-        public void Start()
-        {
-            _messageHandler.Start(callback: this);
-        }
+        public void Start() => _messageHandler.Start(callback: this);
 
-        public void Stop()
-        {
-            _messageHandler.Stop();
-        }
+        public void Stop() => _messageHandler.Stop();
     }
 }

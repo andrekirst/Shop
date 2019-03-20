@@ -33,5 +33,10 @@ namespace ProductSearchService.EventListener.Messaging
 
         public JObject Deserialize(string value)
             => JsonConvert.DeserializeObject<JObject>(value: value, settings: _serializerSettings);
+
+        public T Deserialize<T>(string value)
+            => JsonConvert
+            .DeserializeObject<JObject>(value: value, settings: _serializerSettings)
+            .ToObject<T>();
     }
 }

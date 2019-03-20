@@ -11,6 +11,8 @@ namespace ProductSearchService.EventListener.Messaging
 
         JObject Deserialize(string value);
 
+        T Deserialize<T>(string value);
+
         Encoding Encoding { get; }
     }
 }

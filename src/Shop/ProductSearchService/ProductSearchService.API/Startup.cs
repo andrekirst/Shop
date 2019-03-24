@@ -14,6 +14,8 @@ using ProductSearchService.API.Commands;
 using ProductSearchService.API.Model;
 using ProductSearchService.API.Events;
 using ProductSearchService.API.Messaging;
+using BeatPulse;
+using BeatPulse.UI;
 
 namespace ProductSearchService.API
 {
@@ -69,9 +71,14 @@ namespace ProductSearchService.API
                 c.SwaggerDoc(name: "v1", info: new Info { Title = "ProductSearchService.API", Version = "v1" });
             });
 
-            services.AddHealthChecks(checks: checks =>
+            services.AddBeatPulse(setup =>
             {
-                checks.WithDefaultCacheDuration(duration: 1.Seconds());
+                setup.AddElasticsearch(connectionString);
+                setup.AddRabbitMQ($"amqp://{username}:{password}@{hostname}:15672/vhost");
+                setup.AddDiskStorageLiveness(options: options =>
+                {
+                    //options.AddDrive()
+                });
             });
         }
 
@@ -116,6 +123,16 @@ namespace ProductSearchService.API
             });
 
             app.UseAuthorization();
+
+            app.UseBeatPulse(options =>
+            {
+                options
+                    .ConfigurePath(path: "health")
+                    .ConfigureTimeout(milliseconds: 1500)
+                    .ConfigureDetailedOutput(
+                        detailedOutput: true,
+                        includeExceptionMessages: true);
+            });
         }
 
         private void SetupAutoMapper()

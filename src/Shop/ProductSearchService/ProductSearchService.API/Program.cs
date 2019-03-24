@@ -15,7 +15,6 @@ namespace ProductSearchService.API
         public static IWebHost CreateHostBuilder(string[] args) =>
             WebHost.CreateDefaultBuilder(args: args)
                 .UseStartup<Startup>()
-                .UseHealthChecks(path: "/health")
                 .UseApplicationInsights(instrumentationKey: "ProductSearchService.API")
                 .UseSerilog()
                 .ConfigureLogging(configureLogging: (hostingContext, logging) =>

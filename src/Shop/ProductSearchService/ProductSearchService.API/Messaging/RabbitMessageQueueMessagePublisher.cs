@@ -5,6 +5,7 @@ using RabbitMQ.Client.Framing;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using FluentTimeSpan;
 
 namespace ProductSearchService.API.Messaging
 {
@@ -41,8 +42,8 @@ namespace ProductSearchService.API.Messaging
                 Policy
                     .Handle<Exception>()
                     .WaitAndRetry(
-                        retryCount: 9,
-                        sleepDurationProvider: r => TimeSpan.FromSeconds(value: 5),
+                        retryCount: 20,
+                        sleepDurationProvider: r => 5.Seconds(),
                         onRetry: (ex, ts) =>
                         {
                             _logger.LogError(exception: ex, message: "Error connecting to RabbitMQ. Retrying in 5 sec.");

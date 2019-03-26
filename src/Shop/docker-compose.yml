@@ -39,17 +39,17 @@ services:
     environment:
       - ELASTICSEARCH_HOSTS=http://elastic:9200
   
-  # heartbeat:
-  #   image: docker.elastic.co/beats/heartbeat:6.6.2
-  #   container_name: heartbeat
-  #   volumes:
-  #     - './heartbeat.yml:/usr/share/heartbeat/heartbeat.yml'
-  #   depends_on:
-  #     - elastic
-  #     - kibana
-  #   environment:
-  #     - setup.kibana.host=kibana:5601
-  #     - setup.elasticsearch.hosts=["elastic:9200"]
+  heartbeat:
+    image: docker.elastic.co/beats/heartbeat:6.6.2
+    container_name: heartbeat
+    volumes:
+      - './heartbeat.yml:/usr/share/heartbeat/heartbeat.yml'
+    depends_on:
+      - elastic
+      - kibana
+    environment:
+      - setup.kibana.host=kibana:5601
+      - setup.elasticsearch.hosts=["elastic:9200"]
 
   mailserver:
     image: djfarrelly/maildev

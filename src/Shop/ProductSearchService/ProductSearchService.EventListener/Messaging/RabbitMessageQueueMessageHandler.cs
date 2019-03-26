@@ -46,7 +46,7 @@ namespace ProductSearchService.EventListener.Messaging
             Policy
                 .Handle<Exception>()
                 .WaitAndRetry(
-                    retryCount: 9,
+                    retryCount: 20,
                     sleepDurationProvider: r => 5.Seconds(),
                     onRetry: (ex, ts) =>
                     {

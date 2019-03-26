@@ -1,3 +1,4 @@
+using FluentTimeSpan;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Logging;
@@ -12,9 +13,10 @@ namespace ProductSearchService.API
             CreateHostBuilder(args: args).Run();
         }
 
-        public static IWebHost CreateHostBuilder(string[] args) =>
+        private static IWebHost CreateHostBuilder(string[] args) =>
             WebHost.CreateDefaultBuilder(args: args)
                 .UseStartup<Startup>()
+                .UseHealthChecks(path: "/health", timeout: 3.Seconds())
                 .UseApplicationInsights(instrumentationKey: "ProductSearchService.API")
                 .UseSerilog()
                 .ConfigureLogging(configureLogging: (hostingContext, logging) =>

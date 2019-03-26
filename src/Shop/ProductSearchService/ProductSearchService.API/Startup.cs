@@ -7,15 +7,15 @@ using Swashbuckle.AspNetCore.Swagger;
 using AutoMapper;
 using Elasticsearch.Net;
 using FluentTimeSpan;
+using Microsoft.Extensions.HealthChecks;
 using Microsoft.Extensions.Logging;
+using ProductSearchService.API.Checks;
 using Serilog;
 using ProductSearchService.API.Repositories;
 using ProductSearchService.API.Commands;
 using ProductSearchService.API.Model;
 using ProductSearchService.API.Events;
 using ProductSearchService.API.Messaging;
-using BeatPulse;
-using BeatPulse.UI;
 
 namespace ProductSearchService.API
 {
@@ -40,13 +40,10 @@ namespace ProductSearchService.API
             services.AddTransient<IMessageSerializer, JsonMessageSerializer>();
 
             var configSection = Configuration.GetSection(key: "RabbitMQ");
-            string hostname = configSection[key: "Hostname"];
-            string username = configSection[key: "Username"];
-            string password = configSection[key: "Password"];
             services.AddTransient<IMessagePublisher>(implementationFactory: sp => new RabbitMessageQueueMessagePublisher(
-                hostname: hostname,
-                username: username,
-                password: password,
+                hostname: configSection[key: "Hostname"],
+                username: configSection[key: "Username"],
+                password: configSection[key: "Password"],
                 exchange: "SearchLog",
                 messageSerializer: sp.GetService<IMessageSerializer>(),
                 logger: sp.GetService<ILogger<RabbitMessageQueueMessagePublisher>>()));
@@ -71,14 +68,11 @@ namespace ProductSearchService.API
                 c.SwaggerDoc(name: "v1", info: new Info { Title = "ProductSearchService.API", Version = "v1" });
             });
 
-            services.AddBeatPulse(setup =>
+            services.AddHealthChecks(checks: checks =>
             {
-                setup.AddElasticsearch(connectionString);
-                setup.AddRabbitMQ($"amqp://{username}:{password}@{hostname}:15672/vhost");
-                setup.AddDiskStorageLiveness(options: options =>
-                {
-                    //options.AddDrive()
-                });
+                checks.AddCheck(name: "AlwaysAvailable", check: () => new AlwaysAvailableCheck());
+                checks.WithDefaultCacheDuration(3.Seconds());
+                checks.WithPartialSuccessStatus(CheckStatus.Healthy);
             });
         }
 
@@ -123,16 +117,6 @@ namespace ProductSearchService.API
             });
 
             app.UseAuthorization();
-
-            app.UseBeatPulse(options =>
-            {
-                options
-                    .ConfigurePath(path: "health")
-                    .ConfigureTimeout(milliseconds: 1500)
-                    .ConfigureDetailedOutput(
-                        detailedOutput: true,
-                        includeExceptionMessages: true);
-            });
         }
 
         private void SetupAutoMapper()

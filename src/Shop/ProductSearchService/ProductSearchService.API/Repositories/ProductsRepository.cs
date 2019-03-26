@@ -6,33 +6,34 @@ using Elasticsearch.Net;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using ProductSearchService.API.Model;
+using static Elasticsearch.Net.PostData;
 
 namespace ProductSearchService.API.Repositories
 {
     public class ProductsRepository : IProductsRepository
     {
-        private readonly ILogger<ProductsRepository> _logger;
-        private readonly IElasticLowLevelClient _client;
-
         public ProductsRepository(
             ILogger<ProductsRepository> logger,
             IElasticLowLevelClient client)
         {
-            _logger = logger;
-            _client = client;
+            Logger = logger;
+            ElasticClient = client;
         }
 
         private string Index => "productssearch";
 
         private string Type => "products";
 
+        private ILogger<ProductsRepository> Logger { get; }
+        
+        private IElasticLowLevelClient ElasticClient { get; }
+
         public async Task<List<Product>> GetProductsByFilter(string filter, CancellationToken cancellationToken)
         {
-            var response = await _client.SearchAsync<StringResponse>(
+            var response = await ElasticClient.SearchAsync<StringResponse>(
                 index: Index,
                 type: Type,
-                body: PostData.Serializable(
-                    o: new
+                body: Serializable(o:new
                     {
                         query = new
                         {
@@ -41,22 +42,19 @@ namespace ProductSearchService.API.Repositories
                                 query = $"*{filter}*"
                             }
                         }
-                    }), ctx: cancellationToken);
-            
-            if (response.Success)
-            {
-                JObject parsedBody = JObject.Parse(json: response.Body);
-                return parsedBody[propertyName: "hits"][key: "hits"]
-                    .Select(selector: s => s["_source"].ToObject<Product>())
-                    .ToList();
-            }
+                    }),
+                ctx: cancellationToken);
 
-            return null;
+            return response.Success
+                ? JObject.Parse(json: response.Body)[propertyName: "hits"][key: "hits"]
+                    .Select(selector: s => s[key: "_source"].ToObject<Product>())
+                    .ToList()
+                : null;
         }
 
         public async Task<Product> GetProductByProductnumber(string productnumber, CancellationToken cancellationToken)
         {
-            var response = await _client.GetAsync<StringResponse>(
+            var response = await ElasticClient.GetAsync<StringResponse>(
                 index: Index,
                 type: Type,
                 id: productnumber,

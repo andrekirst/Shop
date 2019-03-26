@@ -1,13 +1,13 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using ProductSearchService.API.Model;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using System.Threading;
 using Microsoft.Extensions.Logging;
-using ProductSearchService.API.Repositories;
-using ProductSearchService.API.Messaging;
 using ProductSearchService.API.Events;
+using ProductSearchService.API.Messaging;
+using ProductSearchService.API.Model;
+using ProductSearchService.API.Repositories;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace ProductSearchService.API.Controllers
 {

@@ -14,7 +14,7 @@ services:
       - RABBITMQ_DEFAULT_PASS=01031990Pc
 
   elastic:
-    image: docker.elastic.co/elasticsearch/elasticsearch:6.6.2
+    image: docker.elastic.co/elasticsearch/elasticsearch:6.7.0
     container_name: elastic
     environment:
       - cluster.name=elastic-shop-cluster
@@ -30,7 +30,7 @@ services:
       - "9200:9200"
 
   kibana:
-    image: docker.elastic.co/kibana/kibana:6.6.2
+    image: docker.elastic.co/kibana/kibana:6.7.0
     container_name: kibana
     depends_on:
       - elastic
@@ -40,7 +40,7 @@ services:
       - ELASTICSEARCH_HOSTS=http://elastic:9200
   
   heartbeat:
-    image: docker.elastic.co/beats/heartbeat:6.6.2
+    image: docker.elastic.co/beats/heartbeat:6.7.0
     container_name: heartbeat
     volumes:
       - './heartbeat.yml:/usr/share/heartbeat/heartbeat.yml'
@@ -50,6 +50,15 @@ services:
     environment:
       - setup.kibana.host=kibana:5601
       - setup.elasticsearch.hosts=["elastic:9200"]
+  
+  metricbeat:
+    image: docker.elastic.co/beats/metricbeat:6.7.0
+    container_name: metricbeat
+    volumes:
+      - './metricbeat.yml:/usr/share/metricbeat/metricbeat.yml'
+    environment:
+      - ELASTICSEARCH_HOST=elastic:9200
+      - KIBANA_HOST=kibana:5601
 
   mailserver:
     image: djfarrelly/maildev

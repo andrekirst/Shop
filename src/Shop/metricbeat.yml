@@ -1,0 +1,64 @@
+metricbeat.config.modules:
+
+  # Glob pattern for configuration reloading
+  path: ${path.config}/conf.d/*.yml
+
+  # Period on which files under path should be checked for changes
+  reload.period: 10s
+
+  # Set to true to enable config reloading
+  reload.enabled: false
+
+# Maximum amount of time to randomly delay the start of a metricset. Use 0 to
+# disable startup delay.
+metricbeat.max_start_delay: 10s
+
+metricbeat.modules:
+
+#------------------------------- System Module -------------------------------
+- module: system
+  metricsets:
+    - cpu             # CPU usage
+    - load            # CPU load averages
+    - memory          # Memory usage
+    - network         # Network IO
+    - process         # Per process metrics
+    - process_summary # Process summary
+    - uptime          # System Uptime
+    - socket_summary  # Socket summary
+    #- core           # Per CPU core usage
+    #- diskio         # Disk IO
+    #- filesystem     # File system usage for each mountpoint
+    #- fsstat         # File system summary metrics
+    #- raid           # Raid
+    #- socket         # Sockets and connection info (linux only)
+  enabled: true
+  period: 10s
+  processes: ['.*']
+
+- module: rabbitmq
+  metricsets: ["node", "queue", "connection"]
+  enabled: true
+  period: 10s
+  hosts: ["rabbitmq:15672"]
+
+  # Management path prefix, if `management.path_prefix` is set in RabbitMQ
+  # configuration, it has to be set to the same value.
+  #management_path_prefix: ""
+
+  username: rabbitmquser
+  password: 01031990Pc
+
+output.elasticsearch:
+  hosts: ["http://elastic:9200"]
+  index: "metricbeat-%{[beat.version]}-%{+yyyy.MM.dd}"
+
+#setup.dashboards.enabled: true
+
+setup.template:
+  name: "metricbeat"
+  pattern: "metricbeat-*"
+  enabled: false
+
+setup.kibana:
+  host: "http://kibana:5601"

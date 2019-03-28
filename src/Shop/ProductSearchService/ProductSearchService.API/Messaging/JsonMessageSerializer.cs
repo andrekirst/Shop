@@ -8,17 +8,17 @@ namespace ProductSearchService.API.Messaging
 {
     public class JsonMessageSerializer : IMessageSerializer
     {
-        private readonly JsonSerializerSettings _serializerSettings;
+        private readonly JsonSerializerSettings _settings;
 
         public JsonMessageSerializer()
         {
-            _serializerSettings = new JsonSerializerSettings()
+            _settings = new JsonSerializerSettings()
             {
                 DateFormatHandling = DateFormatHandling.IsoDateFormat,
                 DateTimeZoneHandling = DateTimeZoneHandling.Utc
             };
 
-            _serializerSettings.Converters.Add(item: new StringEnumConverter
+            _settings.Converters.Add(item: new StringEnumConverter
             {
                 NamingStrategy = new CamelCaseNamingStrategy()
             });
@@ -29,9 +29,9 @@ namespace ProductSearchService.API.Messaging
         public Encoding Encoding => Encoding.UTF8;
 
         public string Serialize(object value)
-            => JsonConvert.SerializeObject(value: value, settings: _serializerSettings);
+            => JsonConvert.SerializeObject(value: value, settings: _settings);
 
         public JObject Deserialize(string value)
-            => JsonConvert.DeserializeObject<JObject>(value: value, settings: _serializerSettings);
+            => JsonConvert.DeserializeObject<JObject>(value: value, settings: _settings);
     }
 }

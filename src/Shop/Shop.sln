@@ -3,8 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.28527.54
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Infrastructure", "Infrastructure", "{A68EA86E-B866-4680-85F3-E013E1AE0AA1}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ProductSearchService", "ProductSearchService", "{D43C717F-06EC-44CC-B76D-45104936929D}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ProductSearchService.API", "ProductSearchService\ProductSearchService.API\ProductSearchService.API.csproj", "{21CA8130-A028-4AA2-AFDC-BF016F85781A}"
@@ -14,7 +12,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		docker-compose.yml = docker-compose.yml
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProductSearchService.EventListener", "ProductSearchService\ProductSearchService.EventListener\ProductSearchService.EventListener.csproj", "{0F82F541-6171-4506-8BAB-621372AA9CF3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ProductSearchService.EventListener", "ProductSearchService\ProductSearchService.EventListener\ProductSearchService.EventListener.csproj", "{0F82F541-6171-4506-8BAB-621372AA9CF3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

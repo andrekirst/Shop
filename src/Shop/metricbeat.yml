@@ -25,11 +25,11 @@ metricbeat.modules:
     - process         # Per process metrics
     - process_summary # Process summary
     - uptime          # System Uptime
-    - socket_summary  # Socket summary
+    #- socket_summary  # Socket summary
     #- core           # Per CPU core usage
-    #- diskio         # Disk IO
-    #- filesystem     # File system usage for each mountpoint
-    #- fsstat         # File system summary metrics
+    - diskio         # Disk IO
+    - filesystem     # File system usage for each mountpoint
+    - fsstat         # File system summary metrics
     #- raid           # Raid
     #- socket         # Sockets and connection info (linux only)
   enabled: true
@@ -37,7 +37,7 @@ metricbeat.modules:
   processes: ['.*']
 
 - module: rabbitmq
-  metricsets: ["node", "queue", "connection"]
+  metricsets: ["node", "queue", "connection", "exchange"]
   enabled: true
   period: 10s
   hosts: ["rabbitmq:15672"]

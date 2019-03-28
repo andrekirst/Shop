@@ -15,18 +15,14 @@ namespace ProductSearchService.API.Controllers
     [ApiController]
     public class ProductController : ControllerBase
     {
-        private readonly ILogger<ProductController> _logger;
-        private readonly IProductsRepository _repository;
-        private readonly IMessagePublisher _messagePublisher;
-
         public ProductController(
             IProductsRepository repository,
             ILogger<ProductController> logger,
             IMessagePublisher messagePublisher)
         {
-            _logger = logger;
-            _repository = repository;
-            _messagePublisher = messagePublisher;
+            Logger = logger;
+            Repository = repository;
+            MessagePublisher = messagePublisher;
         }
 
         [HttpGet]
@@ -37,7 +33,7 @@ namespace ProductSearchService.API.Controllers
         {
             try
             {
-                var product = await _repository.GetProductByProductnumber(
+                var product = await Repository.GetProductByProductnumber(
                     productnumber: productnumber,
                     cancellationToken: cancellationToken);
 
@@ -51,7 +47,7 @@ namespace ProductSearchService.API.Controllers
             }
             catch (TaskCanceledException exception)
             {
-                _logger.LogError(exception: exception, message: $"GetByProductnumber \"{productnumber}\" cancelled");
+                Logger.LogError(exception: exception, message: $"GetByProductnumber \"{productnumber}\" cancelled");
             }
             return NotFound();
         }
@@ -64,38 +60,55 @@ namespace ProductSearchService.API.Controllers
         {
             try
             {
-                var products = await _repository.GetProductsByFilter(
+                var products = await Repository.GetProductsByFilter(
                     filter: filter,
                     cancellationToken: cancellationToken);
 
                 await PublishProductsSearchedEvent(products: products, filter: filter);
-                return Ok(value: products);
+
+                if (products != null && products.Any())
+                {
+                    return Ok(value: products);
+                }
+
+                return NotFound();
             }
             catch (TaskCanceledException exception)
             {
-                _logger.LogError(exception: exception, message: $"GetByFilter \"{filter}\" cancelled");
+                Logger.LogError(exception: exception, message: $"GetByFilter \"{filter}\" cancelled");
             }
 
-            _logger.LogInformation(message: $"No data found for filter {filter}.");
+            Logger.LogInformation(message: $"No data found for filter {filter}.");
             return NotFound();
         }
 
-        private async Task PublishProductsSearchedEvent(List<Product> products, string filter)
+        private Task PublishProductsSearchedEvent(List<Product> products, string filter)
         {
             ProductsSearchedEvent @event = new ProductsSearchedEvent(
                 filter: filter,
                 productsFound: products != null && products.Any(),
                 numberOfProductsFound: products?.Count ?? 0);
-            await _messagePublisher.SendMessageAsync(message: @event, messageType: "ProductsSearchedEvent");
+            return MessagePublisher.SendMessageAsync(
+                message: @event,
+                messageType: "ProductsSearchedEvent");
         }
 
-        private async Task PublishProductSelectedEvent(Product product)
+        private Task PublishProductSelectedEvent(Product product)
         {
             ProductSelectedEvent @event = new ProductSelectedEvent(
                     productnumber: product.Productnumber,
                     name: product.Name,
                     description: product.Description);
-            await _messagePublisher.SendMessageAsync(message: @event, messageType: "ProductSelectedEvent");
+            return MessagePublisher.SendMessageAsync(
+                message: @event,
+                messageType: "ProductSelectedEvent");
         }
+
+
+        private ILogger<ProductController> Logger { get; }
+
+        private IProductsRepository Repository { get; }
+
+        private IMessagePublisher MessagePublisher { get; }
     }
 }

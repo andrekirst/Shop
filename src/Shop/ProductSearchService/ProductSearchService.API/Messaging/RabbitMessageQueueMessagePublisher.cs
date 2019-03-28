@@ -13,8 +13,6 @@ namespace ProductSearchService.API.Messaging
     {
         private IConnection _connection;
         private IModel _channel;
-        private readonly IMessageSerializer _messageSerializer;
-        private readonly ILogger<RabbitMessageQueueMessagePublisher> _logger;
 
         public RabbitMessageQueueMessagePublisher(string hostname, string username, string password, string exchange, IMessageSerializer messageSerializer, ILogger<RabbitMessageQueueMessagePublisher> logger)
         {
@@ -22,8 +20,8 @@ namespace ProductSearchService.API.Messaging
             Username = username;
             Password = password;
             Exchange = exchange;
-            _messageSerializer = messageSerializer;
-            _logger = logger;
+            MessageSerializer = messageSerializer;
+            Logger = logger;
 
             CreateChannel();
         }
@@ -35,10 +33,13 @@ namespace ProductSearchService.API.Messaging
         public string Password { get; }
 
         public string Exchange { get; }
+        
+        private IMessageSerializer MessageSerializer { get; }
+        
+        private ILogger<RabbitMessageQueueMessagePublisher> Logger { get; }
 
-        public Task SendMessageAsync(object message, string messageType)
-        {
-            return Task.Run(action: () =>
+        public Task SendMessageAsync(object message, string messageType) =>
+            Task.Run(action: () =>
                 Policy
                     .Handle<Exception>()
                     .WaitAndRetry(
@@ -46,33 +47,30 @@ namespace ProductSearchService.API.Messaging
                         sleepDurationProvider: r => 5.Seconds(),
                         onRetry: (ex, ts) =>
                         {
-                            _logger.LogError(exception: ex, message: "Error connecting to RabbitMQ. Retrying in 5 sec.");
+                            Logger.LogError(exception: ex, message: "Error connecting to RabbitMQ. Retrying in 5 sec.");
                         })
                     .Execute(action: () =>
                     {
                         BasicProperties publishProperties = CreateProperties(message: message, messageType: messageType);
-                        string data = _messageSerializer.Serialize(value: message);
-                        var body = _messageSerializer.Encoding.GetBytes(s: data);
+                        string data = MessageSerializer.Serialize(value: message);
+                        var body = MessageSerializer.Encoding.GetBytes(s: data);
                         PublishMessage(
                             publishProperties: publishProperties,
                             message: body);
 
                         if (message is Event @event)
                         {
-                            _logger.LogInformation(eventId: @event.EventId, message: @event.ToString()); 
+                            Logger.LogInformation(eventId: @event.EventId, message: @event.ToString()); 
                         }
                     })
             );
-        }
 
-        private void PublishMessage(BasicProperties publishProperties, byte[] message)
-        {
+        private void PublishMessage(BasicProperties publishProperties, byte[] message) =>
             _channel.BasicPublish(
                 exchange: Exchange,
                 routingKey: "",
                 basicProperties: publishProperties,
                 body: message);
-        }
 
         private BasicProperties CreateProperties(object message, string messageType)
         {
@@ -83,8 +81,8 @@ namespace ProductSearchService.API.Messaging
                     { "MessageType", $"Event:{messageType}" }
                 },
                 Persistent = true,
-                ContentType = _messageSerializer.ContentType,
-                ContentEncoding = _messageSerializer.Encoding.WebName,
+                ContentType = MessageSerializer.ContentType,
+                ContentEncoding = MessageSerializer.Encoding.WebName,
                 AppId = AppDomain.CurrentDomain.FriendlyName
             };
 
@@ -111,15 +109,13 @@ namespace ProductSearchService.API.Messaging
             CreateExchange();
         }
 
-        private void CreateExchange()
-        {
+        private void CreateExchange() =>
             _channel.ExchangeDeclare(
                 exchange: Exchange,
                 type: ExchangeType.Headers,
                 durable: true,
                 autoDelete: false,
                 arguments: null);
-        }
 
         public void Dispose()
         {

@@ -21,21 +21,20 @@ namespace ProductSearchService.API
 {
     public class Startup
     {
-        private readonly ILogger<Startup> _logger;
+        private ILogger<Startup> Logger { get; }
 
         public Startup(ILogger<Startup> logger, IConfiguration configuration)
         {
-            _logger = logger;
+            Logger = logger;
             Configuration = configuration;
         }
 
         public IConfiguration Configuration { get; }
 
-        // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
             string connectionString = ConnectionString;
-            _logger.LogDebug(message: $"ConnectionString: {connectionString}");
+            Logger.LogDebug(message: $"ConnectionString: {connectionString}");
 
             services.AddTransient<IMessageSerializer, JsonMessageSerializer>();
 
@@ -52,10 +51,10 @@ namespace ProductSearchService.API
                 .AddMvc()
                 .AddNewtonsoftJson();
 
-            var node = new Uri(uriString: ConnectionString);
-            var config = new ConnectionConfiguration(uri: node)
+            var elasticNode = new Uri(uriString: ConnectionString);
+            var elasticConfiguration = new ConnectionConfiguration(uri: elasticNode)
                 .RequestTimeout(timeout: 2.Minutes());
-            var client = new ElasticLowLevelClient(settings: config);
+            var client = new ElasticLowLevelClient(settings: elasticConfiguration);
 
             services.AddTransient<IElasticLowLevelClient, ElasticLowLevelClient>();
             services.AddTransient<IProductsRepository, ProductsRepository>(implementationFactory: sp =>
@@ -65,14 +64,20 @@ namespace ProductSearchService.API
 
             services.AddSwaggerGen(setupAction: c =>
             {
-                c.SwaggerDoc(name: "v1", info: new Info { Title = "ProductSearchService.API", Version = "v1" });
+                c.SwaggerDoc(
+                    name: "v1",
+                    info: new Info
+                    {
+                        Title = "ProductSearchService.API",
+                        Version = "v1",
+                    });
             });
 
             services.AddHealthChecks(checks: checks =>
             {
                 checks.AddCheck(name: "AlwaysAvailable", check: () => new AlwaysAvailableCheck());
-                checks.WithDefaultCacheDuration(3.Seconds());
-                checks.WithPartialSuccessStatus(CheckStatus.Healthy);
+                checks.WithDefaultCacheDuration(duration: 3.Seconds());
+                checks.WithPartialSuccessStatus(partiallyHealthyStatus: CheckStatus.Healthy);
             });
         }
 

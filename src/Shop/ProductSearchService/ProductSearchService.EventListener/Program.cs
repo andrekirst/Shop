@@ -13,9 +13,9 @@ namespace ProductSearchService.EventListener
 {
     public class Program
     {
-        public static string ShopEnvironment { get; private set; }
+        public static string ShopEnvironment { get; }
 
-        public static IConfigurationRoot Config { get; private set; }
+        public static IConfigurationRoot Config { get; }
 
         static Program()
         {

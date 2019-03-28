@@ -77,7 +77,7 @@ services:
 
   productsearchservice.api:
     image: shop/productsearchservice.api:latest
-    build: ProductSearchService/ProductSearchService.API
+    build: ProductSearchService/ProductSearchService.API/ProductSearchService.API
     container_name: productsearchservice.api
     depends_on:
       - rabbitmq
@@ -89,7 +89,7 @@ services:
   
   productsearchservice.eventlistener:
     image: shop/productsearchservice.eventlistener:latest
-    build: ProductSearchService/ProductSearchService.EventListener
+    build: ProductSearchService/ProductSearchService.EventListener/ProductSearchService.EventListener
     container_name: productsearchservice.eventlistener
     depends_on:
       - rabbitmq

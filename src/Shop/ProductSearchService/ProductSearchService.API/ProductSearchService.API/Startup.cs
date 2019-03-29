@@ -16,6 +16,9 @@ using ProductSearchService.API.Commands;
 using ProductSearchService.API.Model;
 using ProductSearchService.API.Events;
 using ProductSearchService.API.Messaging;
+using Serilog.Formatting.Json;
+using Serilog.Sinks.RabbitMQ;
+using Serilog.Sinks.RabbitMQ.Sinks.RabbitMQ;
 
 namespace ProductSearchService.API
 {
@@ -33,16 +36,39 @@ namespace ProductSearchService.API
 
         public void ConfigureServices(IServiceCollection services)
         {
+            var rabbitMessageQueueConfigSection = Configuration.GetSection(key: "RabbitMQ");
+
+            var rabbitMqSerilogConfiguration = new RabbitMQConfiguration
+            {
+                Hostname = rabbitMessageQueueConfigSection[key: "Hostname"],
+                Username = rabbitMessageQueueConfigSection[key: "Username"],
+                Password = rabbitMessageQueueConfigSection[key: "Password"],
+                Exchange = "ServiceLogging",
+                ExchangeType = "fanout",
+                DeliveryMode = RabbitMQDeliveryMode.Durable,
+                RouteKey = "Logs",
+                Port = 5672
+            };
+
+            Log.Logger = new LoggerConfiguration()
+                .ReadFrom.Configuration(configuration: Configuration)
+                .Enrich.WithMachineName()
+                .Enrich.FromLogContext()
+                .Enrich.WithEnvironmentUserName()
+                .WriteTo.RabbitMQ(
+                    rabbitMqConfiguration: rabbitMqSerilogConfiguration,
+                    formatter: new JsonFormatter())
+                .CreateLogger();
+
             string connectionString = ConnectionString;
             Logger.LogDebug(message: $"ConnectionString: {connectionString}");
 
             services.AddTransient<IMessageSerializer, JsonMessageSerializer>();
 
-            var configSection = Configuration.GetSection(key: "RabbitMQ");
             services.AddTransient<IMessagePublisher>(implementationFactory: sp => new RabbitMessageQueueMessagePublisher(
-                hostname: configSection[key: "Hostname"],
-                username: configSection[key: "Username"],
-                password: configSection[key: "Password"],
+                hostname: rabbitMessageQueueConfigSection[key: "Hostname"],
+                username: rabbitMessageQueueConfigSection[key: "Username"],
+                password: rabbitMessageQueueConfigSection[key: "Password"],
                 exchange: "SearchLog",
                 messageSerializer: sp.GetService<IMessageSerializer>(),
                 logger: sp.GetService<ILogger<RabbitMessageQueueMessagePublisher>>()));
@@ -86,11 +112,6 @@ namespace ProductSearchService.API
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env, IApplicationLifetime lifetime)
         {
-            Log.Logger = new LoggerConfiguration()
-                .ReadFrom.Configuration(configuration: Configuration)
-                .Enrich.WithMachineName()
-                .CreateLogger();
-
             app.UseMvc();
             app.UseDefaultFiles();
             app.UseStaticFiles();
@@ -101,7 +122,11 @@ namespace ProductSearchService.API
 
             app.UseSwaggerUI(setupAction: c =>
             {
-                c.SwaggerEndpoint(url: "/swagger/v1/swagger.json", name: "ProductSearchServiceAPI - v1");
+                c.SwaggerEndpoint(
+                    url: "/swagger/v1/swagger.json",
+                    name: "ProductSearchService.API - v1");
+                c.DisplayOperationId();
+                c.DisplayRequestDuration();
             });
 
             if (env.IsDevelopment())
@@ -110,11 +135,10 @@ namespace ProductSearchService.API
             }
             else
             {
-                // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();
             }
 
-            //app.UseHttpsRedirection();
+            app.UseHttpsRedirection();
 
             app.UseRouting(configure: routes =>
             {

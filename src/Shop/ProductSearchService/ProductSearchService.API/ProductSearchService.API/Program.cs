@@ -24,6 +24,7 @@ namespace ProductSearchService.API
                         logging.AddConfiguration(configuration: hostingContext.Configuration.GetSection(key: "Logging"));
                         logging.AddConsole();
                         logging.AddDebug();
+                        logging.AddSerilog();
                     })
                 .Build();
     }

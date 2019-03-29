@@ -28,7 +28,7 @@ namespace ProductSearchService.API.Repositories
         
         private IElasticLowLevelClient ElasticClient { get; }
 
-        public async Task<List<Product>> GetProductsByFilter(string filter, CancellationToken cancellationToken)
+        public async Task<List<Product>> Search(string filter, CancellationToken cancellationToken)
         {
             var response = await ElasticClient.SearchAsync<StringResponse>(
                 index: Index,

@@ -9,6 +9,6 @@ namespace ProductSearchService.API.Repositories
     {
         Task<Product> GetProductByProductnumber(string productnumber, CancellationToken cancellationToken);
 
-        Task<List<Product>> GetProductsByFilter(string filter, CancellationToken cancellationToken);
+        Task<List<Product>> Search(string filter, CancellationToken cancellationToken);
     }
 }

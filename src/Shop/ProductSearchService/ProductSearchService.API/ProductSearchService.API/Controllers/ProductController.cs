@@ -28,7 +28,7 @@ namespace ProductSearchService.API.Controllers
         [HttpGet]
         [ProducesResponseType(statusCode: 404)]
         [ProducesResponseType(statusCode: 200, Type = typeof(Product))]
-        [Route(template: "{productnumber}", Name = "GetByProductnumber")]
+        [Route(template: "{productnumber}", Name = nameof(GetByProductnumber))]
         public async Task<ActionResult<Product>> GetByProductnumber(string productnumber, CancellationToken cancellationToken)
         {
             try
@@ -55,12 +55,12 @@ namespace ProductSearchService.API.Controllers
         [HttpGet]
         [ProducesResponseType(statusCode: 404)]
         [ProducesResponseType(statusCode: 200, Type = typeof(List<Product>))]
-        [Route(template: "byfilter/{filter}", Name = "GetByFilter")]
-        public async Task<ActionResult<List<Product>>> GetByFilter(string filter, CancellationToken cancellationToken)
+        [Route(template: "search/{filter}", Name = nameof(Search))]
+        public async Task<ActionResult<List<Product>>> Search(string filter, CancellationToken cancellationToken)
         {
             try
             {
-                var products = await Repository.GetProductsByFilter(
+                var products = await Repository.Search(
                     filter: filter,
                     cancellationToken: cancellationToken);
 

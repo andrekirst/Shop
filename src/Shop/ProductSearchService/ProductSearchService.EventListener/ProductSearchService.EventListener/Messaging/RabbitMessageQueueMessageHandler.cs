@@ -6,6 +6,7 @@ using System;
 using System.Text;
 using System.Threading.Tasks;
 using FluentTimeSpan;
+using System.Collections.Generic;
 
 namespace ProductSearchService.EventListener.Messaging
 {
@@ -62,14 +63,34 @@ namespace ProductSearchService.EventListener.Messaging
                         DispatchConsumersAsync = true
                     };
 
+                    var arguments = new Dictionary<string, object>()
+                        {
+                            { "MessageType", Queue }
+                        };
+
                     _connection = factory.CreateConnection();
                     _channel = _connection.CreateModel();
-                    _channel.ExchangeDeclare(exchange: Exchange, type: ExchangeType.Headers, durable: true);
-                    _channel.QueueDeclare(queue: Queue, durable: true, autoDelete: false, exclusive: false);
-                    _channel.QueueBind(queue: Queue, exchange: Exchange, routingKey: RoutingKey);
+                    _channel.ExchangeDeclare(
+                        exchange: Exchange,
+                        type: ExchangeType.Topic,
+                        durable: true);
+                    _channel.QueueDeclare(
+                        queue: Queue,
+                        durable: true,
+                        autoDelete: false,
+                        exclusive: false,
+                        arguments: arguments);
+                    _channel.QueueBind(
+                        queue: Queue,
+                        exchange: Exchange,
+                        routingKey: RoutingKey,
+                        arguments: arguments);
                     _consumer = new AsyncEventingBasicConsumer(model: _channel);
                     _consumer.Received += Consumer_Received;
-                    _consumerTag = _channel.BasicConsume(queue: Queue, autoAck: false, consumer: _consumer);
+                    _consumerTag = _channel.BasicConsume(
+                        queue: Queue,
+                        autoAck: false,
+                        consumer: _consumer);
                 });
         }
 

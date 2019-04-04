@@ -52,7 +52,15 @@ namespace ProductSearchService.EventListener
                 password: password,
                 exchange: "Product",
                 queue: "Product:Event:ProductCreatedEvent",
-                routingKey: "");
+                routingKey: "Event:ProductCreatedEvent");
+
+            RabbitMessageQueueMessageHandler messageHandlerProductNameChanged = new RabbitMessageQueueMessageHandler(
+                hostname: hostname,
+                username: username,
+                password: password,
+                exchange: "Product",
+                queue: "Product:Event:ProductNameChangedEvent",
+                routingKey: "Event:ProductNameChangedEvent");
 
             string connectionString = ConnectionString;
             var node = new Uri(uriString: connectionString);
@@ -67,7 +75,13 @@ namespace ProductSearchService.EventListener
                 messageHandler: messageHandlerProductCreated,
                 repository: repository,
                 messageSerializer: messageSerializer);
+            ProductNameChangedEventHandler productNameChangedEventHandler = new ProductNameChangedEventHandler(
+                messageHandler: messageHandlerProductNameChanged,
+                repository: repository,
+                messageSerializer: messageSerializer);
+
             productCreatedEventHandler.Start();
+            productNameChangedEventHandler.Start();
 
             if (ShopEnvironment == "Development")
             {
@@ -75,6 +89,7 @@ namespace ProductSearchService.EventListener
                 Console.WriteLine(value: "Press any key to stop...");
                 Console.ReadKey(intercept: true);
                 productCreatedEventHandler.Stop();
+                productNameChangedEventHandler.Stop();
             }
             else
             {

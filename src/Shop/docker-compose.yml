@@ -29,6 +29,12 @@ services:
     ports:
       - "9200:9200"
 
+  redis:
+    image: redis:5
+    container_name: redis
+    ports:
+      - "6379:6379"
+
   kibana:
     image: docker.elastic.co/kibana/kibana:6.7.0
     container_name: kibana
@@ -47,6 +53,9 @@ services:
     depends_on:
       - elastic
       - kibana
+      - productsearchservice.api
+      - rabbitmq
+      - mailserver
     environment:
       - setup.kibana.host=kibana:5601
       - setup.elasticsearch.hosts=["elastic:9200"]
@@ -82,6 +91,7 @@ services:
     depends_on:
       - rabbitmq
       - elastic
+      - redis
     ports:
       - "5100:5100"
     environment:
@@ -94,6 +104,7 @@ services:
     depends_on:
       - rabbitmq
       - elastic
+      - redis
     environment:
       - SHOP_ENVIRONMENT=Production
 

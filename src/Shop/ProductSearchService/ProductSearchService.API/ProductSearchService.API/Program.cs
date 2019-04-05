@@ -16,6 +16,14 @@ namespace ProductSearchService.API
         private static IWebHost CreateHostBuilder(string[] args) =>
             WebHost.CreateDefaultBuilder(args: args)
                 .UseStartup<Startup>()
+                .UseKestrel()
+                .ConfigureKestrel((context, options) =>
+                {
+                    if (context.HostingEnvironment.EnvironmentName == "Development")
+                    {
+                        options.ListenAnyIP(5101);
+                    }
+                })
                 .UseHealthChecks(path: "/health", timeout: 3.Seconds())
                 .UseApplicationInsights(instrumentationKey: "ProductSearchService.API")
                 .UseSerilog()

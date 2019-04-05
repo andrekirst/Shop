@@ -88,16 +88,16 @@ namespace ProductSearchService.API
                     logger: sp.GetService<ILogger<ProductsRepository>>(),
                     client: client));
 
-            services.AddSwaggerGen(setupAction: c =>
-            {
-                c.SwaggerDoc(
-                    name: "v1",
-                    info: new Info
-                    {
-                        Title = "ProductSearchService.API",
-                        Version = "v1",
-                    });
-            });
+            //services.AddSwaggerGen(setupAction: c =>
+            //{
+            //    c.SwaggerDoc(
+            //        name: "v1",
+            //        info: new Info
+            //        {
+            //            Title = "ProductSearchService.API",
+            //            Version = "v1",
+            //        });
+            //});
 
             services.AddHealthChecks(checks: checks =>
             {
@@ -118,16 +118,16 @@ namespace ProductSearchService.API
 
             SetupAutoMapper();
 
-            app.UseSwagger();
+            //app.UseSwagger();
 
-            app.UseSwaggerUI(setupAction: c =>
-            {
-                c.SwaggerEndpoint(
-                    url: "/swagger/v1/swagger.json",
-                    name: "ProductSearchService.API - v1");
-                c.DisplayOperationId();
-                c.DisplayRequestDuration();
-            });
+            //app.UseSwaggerUI(setupAction: c =>
+            //{
+            //    c.SwaggerEndpoint(
+            //        url: "/swagger/v1/swagger.json",
+            //        name: "ProductSearchService.API - v1");
+            //    c.DisplayOperationId();
+            //    c.DisplayRequestDuration();
+            //});
 
             if (env.IsDevelopment())
             {
@@ -142,7 +142,7 @@ namespace ProductSearchService.API
 
             app.UseRouting(configure: routes =>
             {
-                routes.MapApplication();
+                routes.MapControllers();
             });
 
             app.UseAuthorization();

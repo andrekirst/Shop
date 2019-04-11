@@ -1,5 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using FluentTimeSpan;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using ProductSearchService.API.Caching;
 using ProductSearchService.API.Events;
 using ProductSearchService.API.Messaging;
 using ProductSearchService.API.Model;
@@ -11,35 +13,53 @@ using System.Threading.Tasks;
 
 namespace ProductSearchService.API.Controllers
 {
-    [Route(template: "api/[controller]")]
+    [Route(template: "api")]
     [ApiController]
     public class ProductController : ControllerBase
     {
         public ProductController(
             IProductsRepository repository,
             ILogger<ProductController> logger,
-            IMessagePublisher messagePublisher)
+            IMessagePublisher messagePublisher,
+            ICache<Product> productCache,
+            ICache<List<Product>> productsCache)
         {
             Logger = logger;
             Repository = repository;
             MessagePublisher = messagePublisher;
+            ProductCache = productCache;
+            ProductsCache = productsCache;
         }
+
+        private ILogger<ProductController> Logger { get; }
+
+        private IProductsRepository Repository { get; }
+
+        private IMessagePublisher MessagePublisher { get; }
+        
+        public ICache<Product> ProductCache { get; }
+        
+        public ICache<List<Product>> ProductsCache { get; }
 
         [HttpGet]
         [ProducesResponseType(statusCode: 404)]
         [ProducesResponseType(statusCode: 200, Type = typeof(Product))]
-        [Route(template: "{productnumber}", Name = nameof(GetByProductnumber))]
+        [Route(template: "product/{productnumber}", Name = nameof(GetByProductnumber))]
         public async Task<ActionResult<Product>> GetByProductnumber(string productnumber, CancellationToken cancellationToken)
         {
+            string cacheKey = $"ProductSearchService.Product[Productnumber=\"{productnumber}\"]";
             try
             {
-                var product = await Repository.GetProductByProductnumber(
-                    productnumber: productnumber,
-                    cancellationToken: cancellationToken);
+                var product = ProductCache.Get(key: cacheKey)
+                    ?? await Repository.GetProductByProductnumber(
+                        productnumber: productnumber,
+                        cancellationToken: cancellationToken);
 
                 if (product != null)
                 {
-                    await PublishProductSelectedEvent(product: product);
+                    _ = Task.Factory.StartNew(() => PublishProductSelectedEvent(product: product));
+                    _ = Task.Factory.StartNew(() => ProductCache.Set(key: cacheKey, value: product, duration: 1.Minutes()));
+
                     return Ok(value: product);
                 }
 
@@ -55,19 +75,25 @@ namespace ProductSearchService.API.Controllers
         [HttpGet]
         [ProducesResponseType(statusCode: 404)]
         [ProducesResponseType(statusCode: 200, Type = typeof(List<Product>))]
-        [Route(template: "search/{filter}", Name = nameof(Search))]
+        [Route(template: "products/{filter}", Name = nameof(Search))]
         public async Task<ActionResult<List<Product>>> Search(string filter, CancellationToken cancellationToken)
         {
+            string cacheKey = $"ProductSearchService.Products[filter=\"{filter}\"]";
             try
             {
-                var products = await Repository.Search(
-                    filter: filter,
-                    cancellationToken: cancellationToken);
+                var products = ProductsCache.Get(key: cacheKey)
+                    ?? await Repository.Search(
+                        filter: filter,
+                        cancellationToken: cancellationToken);
 
-                await PublishProductsSearchedEvent(products: products, filter: filter);
+                _ = Task.Factory.StartNew(() => PublishProductsSearchedEvent(products: products, filter: filter));
 
                 if (products != null && products.Any())
                 {
+                    ProductsCache.Set(
+                        key: cacheKey,
+                        value: products,
+                        duration: 1.Minutes());
                     return Ok(value: products);
                 }
 
@@ -103,12 +129,5 @@ namespace ProductSearchService.API.Controllers
                 message: @event,
                 messageType: "ProductSelectedEvent");
         }
-
-
-        private ILogger<ProductController> Logger { get; }
-
-        private IProductsRepository Repository { get; }
-
-        private IMessagePublisher MessagePublisher { get; }
     }
 }

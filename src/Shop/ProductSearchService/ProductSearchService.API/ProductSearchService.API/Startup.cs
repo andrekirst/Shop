@@ -1,9 +1,8 @@
-using System;
+﻿using System;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Swashbuckle.AspNetCore.Swagger;
 using AutoMapper;
 using Elasticsearch.Net;
 using FluentTimeSpan;
@@ -19,6 +18,7 @@ using ProductSearchService.API.Messaging;
 using Serilog.Formatting.Json;
 using Serilog.Sinks.RabbitMQ;
 using Serilog.Sinks.RabbitMQ.Sinks.RabbitMQ;
+using ProductSearchService.API.Caching;
 
 namespace ProductSearchService.API
 {
@@ -88,16 +88,8 @@ namespace ProductSearchService.API
                     logger: sp.GetService<ILogger<ProductsRepository>>(),
                     client: client));
 
-            //services.AddSwaggerGen(setupAction: c =>
-            //{
-            //    c.SwaggerDoc(
-            //        name: "v1",
-            //        info: new Info
-            //        {
-            //            Title = "ProductSearchService.API",
-            //            Version = "v1",
-            //        });
-            //});
+            services.AddTransient(typeof(ICache<>), typeof(RedisCache<>));
+            services.AddTransient<IRedisCacheSettings, RedisCacheSettings>();
 
             services.AddHealthChecks(checks: checks =>
             {

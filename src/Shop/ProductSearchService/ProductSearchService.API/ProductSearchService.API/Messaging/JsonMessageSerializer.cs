@@ -8,30 +8,41 @@ namespace ProductSearchService.API.Messaging
 {
     public class JsonMessageSerializer : IMessageSerializer
     {
-        private readonly JsonSerializerSettings _settings;
-
         public JsonMessageSerializer()
         {
-            _settings = new JsonSerializerSettings()
+            Settings = new JsonSerializerSettings()
             {
                 DateFormatHandling = DateFormatHandling.IsoDateFormat,
                 DateTimeZoneHandling = DateTimeZoneHandling.Utc
             };
 
-            _settings.Converters.Add(item: new StringEnumConverter
+            Settings.Converters.Add(item: new StringEnumConverter
             {
                 NamingStrategy = new CamelCaseNamingStrategy()
             });
         }
+        
+        private JsonSerializerSettings Settings { get; }
 
         public string ContentType => "application/json";
 
         public Encoding Encoding => Encoding.UTF8;
 
         public string Serialize(object value)
-            => JsonConvert.SerializeObject(value: value, settings: _settings);
+            => JsonConvert.SerializeObject(
+                value: value,
+                settings: Settings);
 
-        public JObject Deserialize(string value)
-            => JsonConvert.DeserializeObject<JObject>(value: value, settings: _settings);
+        public JObject Deserialize(string value) =>
+            JsonConvert.DeserializeObject<JObject>(
+                value: value,
+                settings: Settings);
+
+        public T Deserialize<T>(string value) =>
+            JsonConvert
+            .DeserializeObject<JObject>(
+                value: value,
+                settings: Settings)
+            .ToObject<T>();
     }
 }

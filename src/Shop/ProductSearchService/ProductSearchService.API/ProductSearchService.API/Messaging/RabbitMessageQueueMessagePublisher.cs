@@ -14,7 +14,13 @@ namespace ProductSearchService.API.Messaging
         private IConnection _connection;
         private IModel _channel;
 
-        public RabbitMessageQueueMessagePublisher(string hostname, string username, string password, string exchange, IMessageSerializer messageSerializer, ILogger<RabbitMessageQueueMessagePublisher> logger)
+        public RabbitMessageQueueMessagePublisher(
+            string hostname,
+            string username,
+            string password,
+            string exchange,
+            IMessageSerializer messageSerializer,
+            ILogger<RabbitMessageQueueMessagePublisher> logger)
         {
             Hostname = hostname;
             Username = username;

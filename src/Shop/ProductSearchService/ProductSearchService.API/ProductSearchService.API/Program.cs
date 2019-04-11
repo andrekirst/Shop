@@ -1,4 +1,4 @@
-using FluentTimeSpan;
+﻿using FluentTimeSpan;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Logging;
@@ -28,12 +28,12 @@ namespace ProductSearchService.API
                 .UseApplicationInsights(instrumentationKey: "ProductSearchService.API")
                 .UseSerilog()
                 .ConfigureLogging(configureLogging: (hostingContext, logging) =>
-                    {
-                        logging.AddConfiguration(configuration: hostingContext.Configuration.GetSection(key: "Logging"));
-                        logging.AddConsole();
-                        logging.AddDebug();
-                        logging.AddSerilog();
-                    })
+                {
+                    logging.AddConfiguration(configuration: hostingContext.Configuration.GetSection(key: "Logging"));
+                    logging.AddConsole();
+                    logging.AddDebug();
+                    logging.AddSerilog();
+                })
                 .Build();
     }
 }

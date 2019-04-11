@@ -12,6 +12,9 @@ namespace ProductSearchService.API.Repositories
 {
     public class ProductsRepository : IProductsRepository
     {
+        private const string Index = "productssearch";
+        private const string Type = "products";
+
         public ProductsRepository(
             ILogger<ProductsRepository> logger,
             IElasticLowLevelClient client)
@@ -20,20 +23,16 @@ namespace ProductSearchService.API.Repositories
             ElasticClient = client;
         }
 
-        private string Index => "productssearch";
-
-        private string Type => "products";
-
         private ILogger<ProductsRepository> Logger { get; }
-        
+
         private IElasticLowLevelClient ElasticClient { get; }
 
         public async Task<List<Product>> Search(string filter, CancellationToken cancellationToken)
         {
             var response = await ElasticClient.SearchAsync<StringResponse>(
-                index: Index,
-                type: Type,
-                body: Serializable(o:new
+                    index: Index,
+                    type: Type,
+                    body: Serializable(o: new
                     {
                         query = new
                         {
@@ -43,8 +42,9 @@ namespace ProductSearchService.API.Repositories
                             }
                         }
                     }),
-                ctx: cancellationToken);
+                    ctx: cancellationToken);
 
+            // TODO Json interface
             return response.Success
                 ? JObject.Parse(json: response.Body)[propertyName: "hits"][key: "hits"]
                     .Select(selector: s => s[key: "_source"].ToObject<Product>())
@@ -54,11 +54,12 @@ namespace ProductSearchService.API.Repositories
 
         public async Task<Product> GetProductByProductnumber(string productnumber, CancellationToken cancellationToken)
         {
+            Logger.LogInformation(message: $"Call GetAsync to index \"{Index}\", type \"{Type}\" and id \"{productnumber}\"");
             var response = await ElasticClient.GetAsync<StringResponse>(
-                index: Index,
-                type: Type,
-                id: productnumber,
-                ctx: cancellationToken);
+                    index: Index,
+                    type: Type,
+                    id: productnumber,
+                    ctx: cancellationToken);
 
             if (response.Success)
             {
@@ -75,6 +76,37 @@ namespace ProductSearchService.API.Repositories
             }
 
             return null;
+        }
+
+        public async Task<bool> CreateProduct(string productnumber, string name, string description)
+        {
+            StringResponse response = await ElasticClient.IndexAsync<StringResponse>(
+                index: Index,
+                type: Type,
+                id: productnumber,
+                body: PostData.Serializable(o: new
+                {
+                    Productnumber = productnumber,
+                    Name = name,
+                    Description = description
+                }));
+            return response.Success;
+        }
+
+        public async Task<bool> UpdateProductName(string productnumber, string name)
+        {
+            var response = await ElasticClient.UpdateAsync<StringResponse>(
+                index: Index,
+                type: Type,
+                id: productnumber,
+                body: PostData.Serializable(o: new
+                {
+                    doc = new
+                    {
+                        Name = name
+                    }
+                }));
+            return response.Success;
         }
     }
 }

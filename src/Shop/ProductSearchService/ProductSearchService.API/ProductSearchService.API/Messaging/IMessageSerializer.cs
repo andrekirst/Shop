@@ -11,6 +11,8 @@ namespace ProductSearchService.API.Messaging
 
         JObject Deserialize(string value);
 
+        T Deserialize<T>(string value);
+
         Encoding Encoding { get; }
     }
 }

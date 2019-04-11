@@ -10,5 +10,9 @@ namespace ProductSearchService.API.Repositories
         Task<Product> GetProductByProductnumber(string productnumber, CancellationToken cancellationToken);
 
         Task<List<Product>> Search(string filter, CancellationToken cancellationToken);
+
+        Task<bool> CreateProduct(string productnumber, string name, string description);
+
+        Task<bool> UpdateProductName(string productnumber, string name);
     }
 }

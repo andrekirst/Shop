@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using FluentTimeSpan;
 using Microsoft.Extensions.Logging;
 using Polly;
@@ -26,7 +27,7 @@ namespace ProductSearchService.API.Caching
                     sleepDurationProvider: r => 1.Seconds(),
                     onRetry: (ex, ts) =>
                     {
-                        Logger.LogError(exception: ex, message: $"Redis initialization failed to Host {Settings.Host}");
+                        Logger.LogError(exception: ex, message: $"RedisCache: Redis initialization failed to Host {Settings.Host}");
                     })
                     .Execute(() =>
                     {
@@ -50,12 +51,17 @@ namespace ProductSearchService.API.Caching
                 sleepDurationProvider: r => 1.Seconds(),
                 onRetry: (ex, ts) =>
                 {
-                    Logger.LogError(exception: ex, message: $"Get key \"{key}\"");
+                    Logger.LogError(exception: ex, message: $"RedisCache: Get key \"{key}\"");
                 })
                 .Execute(() =>
                 {
-                    Logger.LogInformation($"Get data for key \"{key}\"");
-                    return RedisClient.Get<T>(key: key);
+                    Stopwatch stopwatch = new Stopwatch();
+                    Logger.LogInformation($"RedisCache: Get data for key \"{key}\"");
+                    stopwatch.Start();
+                    var item = RedisClient.Get<T>(key: key);
+                    stopwatch.Stop();
+                    Logger.LogInformation($"RedisCache: Get data for key \"{key}\" tooked {stopwatch.ElapsedMilliseconds}ms");
+                    return item;
                 });
         }
 
@@ -68,7 +74,7 @@ namespace ProductSearchService.API.Caching
                     sleepDurationProvider: r => 1.Seconds(),
                     onRetry: (ex, ts) =>
                     {
-                        Logger.LogError(exception: ex, message: $"Set key \"{key}\"");
+                        Logger.LogError(exception: ex, message: $"RedisCache: Set key \"{key}\"");
                     })
                     .Execute(action: () =>
                     {
@@ -78,13 +84,13 @@ namespace ProductSearchService.API.Caching
                                 key: key,
                                 value: value,
                                 expiresIn: duration.Value);
-                            Logger.LogInformation(message: $"Cache key \"{key}\" for duration: {duration.Value}");
+                            Logger.LogInformation(message: $"RedisCache: Cache key \"{key}\" for duration: {duration.Value}");
                         }
                         else
                         {
                             RedisClient.Set(
                                 key: key,
-                                value: value); Logger.LogInformation(message: $"Cache key \"{key}\"");
+                                value: value); Logger.LogInformation(message: $"RedisCache: Cache key \"{key}\"");
                         }
                     });
         }
@@ -98,14 +104,14 @@ namespace ProductSearchService.API.Caching
                     sleepDurationProvider: r => 1.Seconds(),
                     onRetry: (ex, ts) =>
                     {
-                        Logger.LogError(exception: ex, message: $"Update key \"{key}\"");
+                        Logger.LogError(exception: ex, message: $"RedisCache: Update key \"{key}\"");
                     })
                     .Execute(action: () =>
                     {
-                        Logger.LogInformation(message: $"Lock key \"{key}\" for update");
+                        Logger.LogInformation(message: $"RedisCache: Lock key \"{key}\" for update");
                         using (RedisClient.AcquireLock(key: key, timeOut: 1.Seconds()))
                         {
-                            Logger.LogInformation(message: $"Get data for key \"{key}\" to update");
+                            Logger.LogInformation(message: $"RedisCache: Get data for key \"{key}\" to update");
                             T item = RedisClient.Get<T>(key: key);
                             if (item != null)
                             {
@@ -116,13 +122,13 @@ namespace ProductSearchService.API.Caching
                                         key: key,
                                         value: item,
                                         expiresIn: duration.Value);
-                                    Logger.LogInformation(message: $"Set data for key \"{key}\" to update with duration {duration.Value}");
+                                    Logger.LogInformation(message: $"RedisCache: Set data for key \"{key}\" to update with duration {duration.Value}");
                                 }
                                 else
                                 {
                                     RedisClient.Set(
                                         key: key,
-                                        value: item); Logger.LogInformation(message: $"Set data for key \"{key}\" to update");
+                                        value: item); Logger.LogInformation(message: $"RedisCache: Set data for key \"{key}\" to update");
                                 }
                             }
                         }

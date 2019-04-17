@@ -15,16 +15,12 @@ namespace ProductSearchService.API.Messaging
         private IModel _channel;
 
         public RabbitMessageQueueMessagePublisher(
-            string hostname,
-            string username,
-            string password,
+            IRabbitMessageQueueSettings settings,
             string exchange,
             IMessageSerializer messageSerializer,
             ILogger<RabbitMessageQueueMessagePublisher> logger)
         {
-            Hostname = hostname;
-            Username = username;
-            Password = password;
+            Settings = settings;
             Exchange = exchange;
             MessageSerializer = messageSerializer;
             Logger = logger;
@@ -32,12 +28,8 @@ namespace ProductSearchService.API.Messaging
             CreateChannel();
         }
 
-        public string Hostname { get; }
-
-        public string Username { get; }
-
-        public string Password { get; }
-
+        public IRabbitMessageQueueSettings Settings { get; }
+        
         public string Exchange { get; }
         
         private IMessageSerializer MessageSerializer { get; }
@@ -68,8 +60,29 @@ namespace ProductSearchService.API.Messaging
                         {
                             Logger.LogInformation(eventId: @event.EventId, message: @event.ToString()); 
                         }
-                    })
-            );
+                    }));
+
+        public Task SendEventAsync(Event @event, string messageType) =>
+            Task.Run(action: () =>
+                Policy
+                    .Handle<Exception>()
+                    .WaitAndRetry(
+                        retryCount: 20,
+                        sleepDurationProvider: r => 5.Seconds(),
+                        onRetry: (ex, ts) =>
+                        {
+                            Logger.LogError(exception: ex, message: "Error connecting to RabbitMQ. Retrying in 5 sec.");
+                        })
+                    .Execute(action: () =>
+                    {
+                        BasicProperties publishProperties = CreateProperties(message: @event, messageType: messageType);
+                        string data = MessageSerializer.Serialize(value: @event);
+                        var body = MessageSerializer.Encoding.GetBytes(s: data);
+                        PublishMessage(
+                            publishProperties: publishProperties,
+                            message: body);
+                            Logger.LogInformation(eventId: @event.EventId, message: @event.ToString());
+                    }));
 
         private void PublishMessage(BasicProperties publishProperties, byte[] message) =>
             _channel.BasicPublish(
@@ -105,9 +118,9 @@ namespace ProductSearchService.API.Messaging
         {
             ConnectionFactory factory = new ConnectionFactory
             {
-                HostName = Hostname,
-                UserName = Username,
-                Password = Password
+                HostName = Settings.HostName,
+                UserName = Settings.UserName,
+                Password = Settings.Password
             };
 
             _connection = factory.CreateConnection();

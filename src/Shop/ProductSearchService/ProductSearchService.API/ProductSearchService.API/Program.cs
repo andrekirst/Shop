@@ -1,6 +1,9 @@
-﻿using FluentTimeSpan;
+﻿using System.Security.Cryptography.X509Certificates;
+using FluentTimeSpan;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.AspNetCore.Server.Kestrel.Https;
 using Microsoft.Extensions.Logging;
 using Serilog;
 
@@ -10,12 +13,12 @@ namespace ProductSearchService.API
     {
         public static void Main(string[] args)
         {
-            CreateHostBuilder(args: args).Run();
+            CreateHostBuilder(args: args)
+                .Run();
         }
 
         private static IWebHost CreateHostBuilder(string[] args) =>
-            WebHost.CreateDefaultBuilder(args: args)
-                .UseStartup<Startup>()
+            WebHost.CreateDefaultBuilder<Startup>(args: args)
                 .UseKestrel()
                 .ConfigureKestrel((context, options) =>
                 {
@@ -30,9 +33,12 @@ namespace ProductSearchService.API
                 .ConfigureLogging(configureLogging: (hostingContext, logging) =>
                 {
                     logging.AddConfiguration(configuration: hostingContext.Configuration.GetSection(key: "Logging"));
-                    logging.AddConsole();
-                    logging.AddDebug();
-                    logging.AddSerilog();
+                    logging.AddConsole(configure =>
+                    {
+                        configure.IncludeScopes = false;
+                        configure.TimestampFormat = "hh:mm:ss.FFF";
+
+                    });
                 })
                 .Build();
     }

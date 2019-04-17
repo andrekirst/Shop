@@ -5,8 +5,6 @@ using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace ProductSearchService.API.Messaging
@@ -21,18 +19,14 @@ namespace ProductSearchService.API.Messaging
         private string _consumerTag;
 
         public RabbitMessageQueueMessageHandler(
-            string hostname,
-            string username,
-            string password,
+            IRabbitMessageQueueSettings settings,
             string exchange,
             string queue,
             string routingKey,
             IMessageSerializer messageSerializer,
             ILogger<RabbitMessageQueueMessageHandler> logger)
         {
-            Hostname = hostname;
-            Username = username;
-            Password = password;
+            Settings = settings;
             Exchange = exchange;
             Queue = queue;
             RoutingKey = routingKey;
@@ -40,12 +34,8 @@ namespace ProductSearchService.API.Messaging
             Logger = logger;
         }
 
-        private string Hostname { get; }
-
-        private string Username { get; }
-
-        private string Password { get; }
-
+        public IRabbitMessageQueueSettings Settings { get; }
+        
         private string Exchange { get; }
 
         private string Queue { get; }
@@ -75,9 +65,9 @@ namespace ProductSearchService.API.Messaging
                 {
                     var factory = new ConnectionFactory
                     {
-                        HostName = Hostname,
-                        UserName = Username,
-                        Password = Password,
+                        HostName = Settings.HostName,
+                        UserName = Settings.UserName,
+                        Password = Settings.Password,
                         DispatchConsumersAsync = true
                     };
 

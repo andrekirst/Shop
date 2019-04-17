@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using AutoMapper;
-using Elasticsearch.Net;
 using FluentTimeSpan;
 using Microsoft.Extensions.HealthChecks;
 using Microsoft.Extensions.Logging;
@@ -36,6 +35,9 @@ namespace ProductSearchService.API
 
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddSingleton<IRabbitMessageQueueSettings, RabbitMessageQueueSettings>();
+            services.AddSingleton<IMessageSerializer, JsonMessageSerializer>();
+
             var rabbitMessageQueueConfigSection = Configuration.GetSection(key: "RabbitMQ");
 
             var rabbitMqSerilogConfiguration = new RabbitMQConfiguration
@@ -60,15 +62,8 @@ namespace ProductSearchService.API
                     formatter: new JsonFormatter())
                 .CreateLogger();
 
-            string connectionString = ConnectionString;
-            Logger.LogDebug(message: $"ConnectionString: {connectionString}");
-
-            services.AddTransient<IMessageSerializer, JsonMessageSerializer>();
-
-            services.AddTransient<IMessagePublisher>(implementationFactory: sp => new RabbitMessageQueueMessagePublisher(
-                hostname: rabbitMessageQueueConfigSection[key: "Hostname"],
-                username: rabbitMessageQueueConfigSection[key: "Username"],
-                password: rabbitMessageQueueConfigSection[key: "Password"],
+            services.AddSingleton<IMessagePublisher>(implementationFactory: sp => new RabbitMessageQueueMessagePublisher(
+                settings: sp.GetService<IRabbitMessageQueueSettings>(),
                 exchange: "SearchLog",
                 messageSerializer: sp.GetService<IMessageSerializer>(),
                 logger: sp.GetService<ILogger<RabbitMessageQueueMessagePublisher>>()));
@@ -77,19 +72,10 @@ namespace ProductSearchService.API
                 .AddMvc()
                 .AddNewtonsoftJson();
 
-            var elasticNode = new Uri(uriString: ConnectionString);
-            var elasticConfiguration = new ConnectionConfiguration(uri: elasticNode)
-                .RequestTimeout(timeout: 2.Minutes());
-            var client = new ElasticLowLevelClient(settings: elasticConfiguration);
-
-            services.AddTransient<IElasticLowLevelClient, ElasticLowLevelClient>();
-            services.AddTransient<IProductsRepository, ProductsRepository>(implementationFactory: sp =>
-                new ProductsRepository(
-                    logger: sp.GetService<ILogger<ProductsRepository>>(),
-                    client: client));
-
-            services.AddTransient(typeof(ICache<>), typeof(RedisCache<>));
-            services.AddTransient<IRedisCacheSettings, RedisCacheSettings>();
+            services.AddSingleton<IElasticClientSettings, ElasticClientSettings>();
+            services.AddSingleton<IProductsRepository, ProductsRepository>();
+            services.AddSingleton(typeof(ICache<>), typeof(RedisCache<>));
+            services.AddSingleton<IRedisCacheSettings, RedisCacheSettings>();
 
             services.AddHealthChecks(checks: checks =>
             {
@@ -98,8 +84,6 @@ namespace ProductSearchService.API
                 checks.WithPartialSuccessStatus(partiallyHealthyStatus: CheckStatus.Healthy);
             });
         }
-
-        private string ConnectionString => Configuration.GetConnectionString(name: "ProductSearchConnectionString");
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env, IApplicationLifetime lifetime)
@@ -130,7 +114,7 @@ namespace ProductSearchService.API
                 app.UseHsts();
             }
 
-            app.UseHttpsRedirection();
+            //app.UseHttpsRedirection();
 
             app.UseRouting(configure: routes =>
             {

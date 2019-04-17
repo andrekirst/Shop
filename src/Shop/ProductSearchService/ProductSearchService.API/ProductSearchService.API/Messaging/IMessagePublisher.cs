@@ -5,5 +5,7 @@ namespace ProductSearchService.API.Messaging
     public interface IMessagePublisher
     {
         Task SendMessageAsync(object message, string messageType);
+
+        Task SendEventAsync(Event @event, string messageType);
     }
 }

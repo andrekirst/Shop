@@ -50,15 +50,26 @@ namespace ProductSearchService.API.Controllers
             string cacheKey = $"ProductSearchService.Product[Productnumber=\"{productnumber}\"]";
             try
             {
-                var product = ProductCache.Get(key: cacheKey)
-                    ?? await Repository.GetProductByProductnumber(
+                var product = ProductCache.Get(key: cacheKey);
+                bool isCached = product != null;
+                
+                if (!isCached)
+                {
+                    product = await Repository.GetProductByProductnumber(
                         productnumber: productnumber,
                         cancellationToken: cancellationToken);
+                }
 
                 if (product != null)
                 {
                     _ = Task.Factory.StartNew(() => PublishProductSelectedEvent(product: product));
-                    _ = Task.Factory.StartNew(() => ProductCache.Set(key: cacheKey, value: product, duration: 1.Minutes()));
+                    if (!isCached)
+                    {
+                        _ = Task.Factory.StartNew(() => ProductCache.Set(
+                            key: cacheKey,
+                            value: product,
+                            duration: 15.Minutes())); 
+                    }
 
                     return Ok(value: product);
                 }
@@ -81,19 +92,27 @@ namespace ProductSearchService.API.Controllers
             string cacheKey = $"ProductSearchService.Products[filter=\"{filter}\"]";
             try
             {
-                var products = ProductsCache.Get(key: cacheKey)
-                    ?? await Repository.Search(
+                var products = ProductsCache.Get(key: cacheKey);
+                bool isCached = products != null;
+                if (!isCached)
+                {
+                    products = await Repository.Search(
                         filter: filter,
                         cancellationToken: cancellationToken);
+                }
 
                 _ = Task.Factory.StartNew(() => PublishProductsSearchedEvent(products: products, filter: filter));
 
                 if (products != null && products.Any())
                 {
-                    ProductsCache.Set(
-                        key: cacheKey,
-                        value: products,
-                        duration: 1.Minutes());
+                    if (!isCached)
+                    {
+                        ProductsCache.Set(
+                           key: cacheKey,
+                           value: products,
+                           duration: 1.Minutes());
+                    }
+                    
                     return Ok(value: products);
                 }
 
@@ -101,33 +120,27 @@ namespace ProductSearchService.API.Controllers
             }
             catch (TaskCanceledException exception)
             {
-                Logger.LogError(exception: exception, message: $"GetByFilter \"{filter}\" cancelled");
+                Logger.LogError(exception: exception, message: $"{nameof(Search)} \"{filter}\" cancelled");
             }
 
             Logger.LogInformation(message: $"No data found for filter {filter}.");
             return NotFound();
         }
 
-        private Task PublishProductsSearchedEvent(List<Product> products, string filter)
-        {
-            ProductsSearchedEvent @event = new ProductsSearchedEvent(
+        private Task PublishProductsSearchedEvent(List<Product> products, string filter) =>
+            MessagePublisher.SendEventAsync(
+                @event: new ProductsSearchedEvent(
                 filter: filter,
                 productsFound: products != null && products.Any(),
-                numberOfProductsFound: products?.Count ?? 0);
-            return MessagePublisher.SendMessageAsync(
-                message: @event,
+                numberOfProductsFound: products?.Count ?? 0),
                 messageType: "ProductsSearchedEvent");
-        }
 
-        private Task PublishProductSelectedEvent(Product product)
-        {
-            ProductSelectedEvent @event = new ProductSelectedEvent(
+        private Task PublishProductSelectedEvent(Product product) =>
+            MessagePublisher.SendEventAsync(
+                @event: new ProductSelectedEvent(
                     productnumber: product.Productnumber,
                     name: product.Name,
-                    description: product.Description);
-            return MessagePublisher.SendMessageAsync(
-                message: @event,
+                    description: product.Description),
                 messageType: "ProductSelectedEvent");
-        }
     }
 }

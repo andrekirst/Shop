@@ -16,6 +16,8 @@ using ProductSearchService.API.Messaging;
 using ProductSearchService.API.Caching;
 using Microsoft.Extensions.Hosting;
 using ProductSearchService.API.EventHandlers;
+using ProductSearchService.API.Hubs;
+using Microsoft.AspNetCore.SignalR;
 
 namespace ProductSearchService.API
 {
@@ -45,6 +47,18 @@ namespace ProductSearchService.API
             services
                 .AddMvc()
                 .AddNewtonsoftJson();
+
+            services
+                .AddCors(options =>
+                {
+                    options.AddPolicy("CorsPolicy", policyBuilder =>
+                        policyBuilder
+                            .AllowAnyMethod()
+                            .AllowAnyHeader()
+                            .AllowCredentials());
+                });
+
+            services.AddSignalR();
 
             services.AddSingleton<IElasticClientSettings, ElasticClientSettings>();
             services.AddSingleton<IProductsRepository, ProductsRepository>();
@@ -79,7 +93,8 @@ namespace ProductSearchService.API
                 messageHandler: serviceprovider.GetService<IMessageHandler<ProductNameChangedEventHandler>>(),
                 repository: serviceprovider.GetService<IProductsRepository>(),
                 messageSerializer: serviceprovider.GetService<IMessageSerializer>(),
-                productCache: serviceprovider.GetService<ICache<Product>>());
+                productCache: serviceprovider.GetService<ICache<Product>>(),
+                productHubContext: serviceprovider.GetService<IHubContext<ProductHub>>());
 
             productCreatedEventHandler.Start();
             productNameChangedEventHandler.Start();
@@ -92,7 +107,6 @@ namespace ProductSearchService.API
             });
         }
 
-        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IHostApplicationLifetime lifetime)
         {
             app.UseMvc();
@@ -117,6 +131,10 @@ namespace ProductSearchService.API
             });
 
             app.UseAuthorization();
+            app.UseSignalR(routes =>
+            {
+                routes.MapHub<ProductHub>("/producthub");
+            });
         }
 
         private void SetupAutoMapper()

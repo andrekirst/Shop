@@ -1,8 +1,10 @@
 ﻿using FluentTimeSpan;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 using ProductSearchService.API.Caching;
 using ProductSearchService.API.Events;
+using ProductSearchService.API.Hubs;
 using ProductSearchService.API.Messaging;
 using ProductSearchService.API.Model;
 using ProductSearchService.API.Repositories;
@@ -36,10 +38,10 @@ namespace ProductSearchService.API.Controllers
         private IProductsRepository Repository { get; }
 
         private IMessagePublisher MessagePublisher { get; }
-        
-        public ICache<Product> ProductCache { get; }
-        
-        public ICache<List<Product>> ProductsCache { get; }
+
+        private ICache<Product> ProductCache { get; }
+
+        private ICache<List<Product>> ProductsCache { get; }
 
         [HttpGet]
         [ProducesResponseType(statusCode: 404)]

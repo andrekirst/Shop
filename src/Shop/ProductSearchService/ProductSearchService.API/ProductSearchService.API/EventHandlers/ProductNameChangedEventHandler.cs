@@ -1,7 +1,9 @@
 ﻿using System.Threading.Tasks;
 using FluentTimeSpan;
+using Microsoft.AspNetCore.SignalR;
 using ProductSearchService.API.Caching;
 using ProductSearchService.API.Events;
+using ProductSearchService.API.Hubs;
 using ProductSearchService.API.Messaging;
 using ProductSearchService.API.Model;
 using ProductSearchService.API.Repositories;
@@ -14,21 +16,25 @@ namespace ProductSearchService.API.EventHandlers
             IMessageHandler<ProductNameChangedEventHandler> messageHandler,
             IProductsRepository repository,
             IMessageSerializer messageSerializer,
-            ICache<Product> productCache)
+            ICache<Product> productCache,
+            IHubContext<ProductHub> productHubContext)
         {
             MessageHandler = messageHandler;
             Repository = repository;
             MessageSerializer = messageSerializer;
             ProductCache = productCache;
+            ProductHubContext = productHubContext;
         }
 
-        public IMessageHandler<ProductNameChangedEventHandler> MessageHandler { get; }
+        private IMessageHandler<ProductNameChangedEventHandler> MessageHandler { get; }
 
-        public IProductsRepository Repository { get; }
+        private IProductsRepository Repository { get; }
 
-        public IMessageSerializer MessageSerializer { get; }
+        private IMessageSerializer MessageSerializer { get; }
+
+        private ICache<Product> ProductCache { get; }
         
-        public ICache<Product> ProductCache { get; }
+        private IHubContext<ProductHub> ProductHubContext { get; }
 
         public Task<bool> HandleMessageAsync(string messageType, string message)
         {
@@ -47,9 +53,15 @@ namespace ProductSearchService.API.EventHandlers
                 productnumber: @event.Productnumber,
                 name: @event.Name);
 
+            await ProductHubContext.Clients.All.SendAsync(
+                method: $"UpdateProductName[Productnumber={@event.Productnumber}]",
+                arg1: @event.Productnumber,
+                arg2: @event.Name);
+
             if (successfulUpdated)
             {
                 var product = ProductCache.Get(@event.Productnumber);
+
                 if (product != null)
                 {
                     product.Name = @event.Name;

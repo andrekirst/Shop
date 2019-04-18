@@ -18,6 +18,7 @@ using Microsoft.Extensions.Hosting;
 using ProductSearchService.API.EventHandlers;
 using ProductSearchService.API.Hubs;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.AspNetCore.Cors.Infrastructure;
 
 namespace ProductSearchService.API
 {
@@ -53,9 +54,10 @@ namespace ProductSearchService.API
                 {
                     options.AddPolicy("CorsPolicy", policyBuilder =>
                         policyBuilder
+                            .WithOrigins("http://localhost:5101")
+                            .AllowAnyOrigin()
                             .AllowAnyMethod()
-                            .AllowAnyHeader()
-                            .AllowCredentials());
+                            .AllowAnyHeader());
                 });
 
             services.AddSignalR();
@@ -131,9 +133,10 @@ namespace ProductSearchService.API
             });
 
             app.UseAuthorization();
+
             app.UseSignalR(routes =>
             {
-                routes.MapHub<ProductHub>("/producthub");
+                routes.MapHub<ProductHub>("/ProductHub");
             });
         }
 

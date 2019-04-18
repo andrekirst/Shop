@@ -8,16 +8,14 @@ using FluentTimeSpan;
 using Microsoft.Extensions.HealthChecks;
 using Microsoft.Extensions.Logging;
 using ProductSearchService.API.Checks;
-using Serilog;
 using ProductSearchService.API.Repositories;
 using ProductSearchService.API.Commands;
 using ProductSearchService.API.Model;
 using ProductSearchService.API.Events;
 using ProductSearchService.API.Messaging;
-using Serilog.Formatting.Json;
-using Serilog.Sinks.RabbitMQ;
-using Serilog.Sinks.RabbitMQ.Sinks.RabbitMQ;
 using ProductSearchService.API.Caching;
+using Microsoft.Extensions.Hosting;
+using ProductSearchService.API.EventHandlers;
 
 namespace ProductSearchService.API
 {
@@ -38,30 +36,6 @@ namespace ProductSearchService.API
             services.AddSingleton<IRabbitMessageQueueSettings, RabbitMessageQueueSettings>();
             services.AddSingleton<IMessageSerializer, JsonMessageSerializer>();
 
-            var rabbitMessageQueueConfigSection = Configuration.GetSection(key: "RabbitMQ");
-
-            var rabbitMqSerilogConfiguration = new RabbitMQConfiguration
-            {
-                Hostname = rabbitMessageQueueConfigSection[key: "Hostname"],
-                Username = rabbitMessageQueueConfigSection[key: "Username"],
-                Password = rabbitMessageQueueConfigSection[key: "Password"],
-                Exchange = "ServiceLogging",
-                ExchangeType = "fanout",
-                DeliveryMode = RabbitMQDeliveryMode.Durable,
-                RouteKey = "Logs",
-                Port = 5672
-            };
-
-            Log.Logger = new LoggerConfiguration()
-                .ReadFrom.Configuration(configuration: Configuration)
-                .Enrich.WithMachineName()
-                .Enrich.FromLogContext()
-                .Enrich.WithEnvironmentUserName()
-                .WriteTo.RabbitMQ(
-                    rabbitMqConfiguration: rabbitMqSerilogConfiguration,
-                    formatter: new JsonFormatter())
-                .CreateLogger();
-
             services.AddSingleton<IMessagePublisher>(implementationFactory: sp => new RabbitMessageQueueMessagePublisher(
                 settings: sp.GetService<IRabbitMessageQueueSettings>(),
                 exchange: "SearchLog",
@@ -77,6 +51,39 @@ namespace ProductSearchService.API
             services.AddSingleton(typeof(ICache<>), typeof(RedisCache<>));
             services.AddSingleton<IRedisCacheSettings, RedisCacheSettings>();
 
+            services.AddSingleton<IMessageHandler<ProductCreatedEventHandler>>(serviceprovider => new RabbitMessageQueueMessageHandler<ProductCreatedEventHandler>(
+                settings: serviceprovider.GetService<IRabbitMessageQueueSettings>(),
+                exchange: "Product",
+                queue: "Product:Event:ProductCreatedEvent",
+                routingKey: "Event:ProductCreatedEvent",
+                messageSerializer: serviceprovider.GetService<IMessageSerializer>(),
+                logger: serviceprovider.GetService<ILogger<RabbitMessageQueueMessageHandler<ProductCreatedEventHandler>>>()));
+
+            services.AddSingleton<IMessageHandler<ProductNameChangedEventHandler>>(serviceprovider => new RabbitMessageQueueMessageHandler<ProductNameChangedEventHandler>(
+                settings: serviceprovider.GetService<IRabbitMessageQueueSettings>(),
+                exchange: "Product",
+                queue: "Product:Event:ProductNameChangedEvent",
+                routingKey: "Event:ProductNameChangedEvent",
+                messageSerializer: serviceprovider.GetService<IMessageSerializer>(),
+                logger: serviceprovider.GetService<ILogger<RabbitMessageQueueMessageHandler<ProductNameChangedEventHandler>>>()));
+
+            var serviceprovider = services.BuildServiceProvider();
+            
+            ProductCreatedEventHandler productCreatedEventHandler = new ProductCreatedEventHandler(
+                messageHandler: serviceprovider.GetService<IMessageHandler<ProductCreatedEventHandler>>(),
+                repository: serviceprovider.GetService<IProductsRepository>(),
+                messageSerializer: serviceprovider.GetService<IMessageSerializer>(),
+                productCache: serviceprovider.GetService<ICache<Product>>());
+            
+            ProductNameChangedEventHandler productNameChangedEventHandler = new ProductNameChangedEventHandler(
+                messageHandler: serviceprovider.GetService<IMessageHandler<ProductNameChangedEventHandler>>(),
+                repository: serviceprovider.GetService<IProductsRepository>(),
+                messageSerializer: serviceprovider.GetService<IMessageSerializer>(),
+                productCache: serviceprovider.GetService<ICache<Product>>());
+
+            productCreatedEventHandler.Start();
+            productNameChangedEventHandler.Start();
+
             services.AddHealthChecks(checks: checks =>
             {
                 checks.AddCheck(name: "AlwaysAvailable", check: () => new AlwaysAvailableCheck());
@@ -86,24 +93,13 @@ namespace ProductSearchService.API
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env, IApplicationLifetime lifetime)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IHostApplicationLifetime lifetime)
         {
             app.UseMvc();
             app.UseDefaultFiles();
             app.UseStaticFiles();
 
             SetupAutoMapper();
-
-            //app.UseSwagger();
-
-            //app.UseSwaggerUI(setupAction: c =>
-            //{
-            //    c.SwaggerEndpoint(
-            //        url: "/swagger/v1/swagger.json",
-            //        name: "ProductSearchService.API - v1");
-            //    c.DisplayOperationId();
-            //    c.DisplayRequestDuration();
-            //});
 
             if (env.IsDevelopment())
             {
@@ -115,7 +111,6 @@ namespace ProductSearchService.API
             }
 
             //app.UseHttpsRedirection();
-
             app.UseRouting(configure: routes =>
             {
                 routes.MapControllers();

@@ -5,14 +5,13 @@ using ProductSearchService.API.Events;
 using ProductSearchService.API.Messaging;
 using ProductSearchService.API.Model;
 using ProductSearchService.API.Repositories;
-using ServiceStack.Redis;
 
 namespace ProductSearchService.API.EventHandlers
 {
     public class ProductNameChangedEventHandler : IMessageHandlerCallback
     {
         public ProductNameChangedEventHandler(
-            IMessageHandler messageHandler,
+            IMessageHandler<ProductNameChangedEventHandler> messageHandler,
             IProductsRepository repository,
             IMessageSerializer messageSerializer,
             ICache<Product> productCache)
@@ -23,11 +22,12 @@ namespace ProductSearchService.API.EventHandlers
             ProductCache = productCache;
         }
 
-        public IMessageHandler MessageHandler { get; }
+        public IMessageHandler<ProductNameChangedEventHandler> MessageHandler { get; }
 
         public IProductsRepository Repository { get; }
 
         public IMessageSerializer MessageSerializer { get; }
+        
         public ICache<Product> ProductCache { get; }
 
         public Task<bool> HandleMessageAsync(string messageType, string message)

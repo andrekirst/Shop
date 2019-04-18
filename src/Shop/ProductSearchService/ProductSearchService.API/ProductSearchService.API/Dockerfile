@@ -1,11 +1,11 @@
-FROM microsoft/dotnet:3.0-aspnetcore-runtime-stretch-slim AS base
+FROM mcr.microsoft.com/dotnet/core/aspnet:3.0-stretch-slim AS base
 WORKDIR /app
 EXPOSE 5100
 ENV ASPNETCORE_URLS http://*:5100
 HEALTHCHECK --interval=30s --timeout=3s --retries=1 CMD curl --silent --fail http://localhost:5100/health || exit 1
 ENV WEBSITE_SITE_NAME ProductSearchService.API
 
-FROM microsoft/dotnet:3.0-sdk-stretch AS build
+FROM mcr.microsoft.com/dotnet/core/sdk:3.0-stretch AS build
 WORKDIR /src
 COPY . .
 RUN dotnet restore "ProductSearchService.API.csproj"

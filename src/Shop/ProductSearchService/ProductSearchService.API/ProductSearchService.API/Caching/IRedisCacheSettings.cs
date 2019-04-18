@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace ProductSearchService.API.Caching
+﻿namespace ProductSearchService.API.Caching
 {
     public interface IRedisCacheSettings
     {

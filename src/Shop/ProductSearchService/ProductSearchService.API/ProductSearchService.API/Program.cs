@@ -1,9 +1,6 @@
-﻿using System.Security.Cryptography.X509Certificates;
-using FluentTimeSpan;
+﻿using FluentTimeSpan;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Server.Kestrel.Core;
-using Microsoft.AspNetCore.Server.Kestrel.Https;
 using Microsoft.Extensions.Logging;
 using Serilog;
 

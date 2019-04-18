@@ -9,10 +9,11 @@ using System.Threading.Tasks;
 
 namespace ProductSearchService.API.Messaging
 {
-    public class RabbitMessageQueueMessageHandler : IMessageHandler
+    public class RabbitMessageQueueMessageHandler<TCallback> : IMessageHandler<TCallback>
+        where TCallback : IMessageHandlerCallback
     {
         private const string MessageType = "MessageType";
-        private IMessageHandlerCallback _callback;
+        private TCallback _callback;
         private IConnection _connection;
         private IModel _channel;
         private AsyncEventingBasicConsumer _consumer;
@@ -24,7 +25,7 @@ namespace ProductSearchService.API.Messaging
             string queue,
             string routingKey,
             IMessageSerializer messageSerializer,
-            ILogger<RabbitMessageQueueMessageHandler> logger)
+            ILogger<RabbitMessageQueueMessageHandler<TCallback>> logger)
         {
             Settings = settings;
             Exchange = exchange;
@@ -44,9 +45,9 @@ namespace ProductSearchService.API.Messaging
         
         private IMessageSerializer MessageSerializer { get; }
         
-        private ILogger<RabbitMessageQueueMessageHandler> Logger { get; }
+        private ILogger<RabbitMessageQueueMessageHandler<TCallback>> Logger { get; }
 
-        public void Start(IMessageHandlerCallback callback)
+        public void Start(TCallback callback)
         {
             _callback = callback;
 

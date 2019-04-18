@@ -11,7 +11,7 @@ namespace ProductSearchService.API.EventHandlers
     public class ProductCreatedEventHandler : IMessageHandlerCallback
     {
         public ProductCreatedEventHandler(
-            IMessageHandler messageHandler,
+            IMessageHandler<ProductCreatedEventHandler> messageHandler,
             IProductsRepository repository,
             IMessageSerializer messageSerializer,
             ICache<Product> productCache)
@@ -26,7 +26,7 @@ namespace ProductSearchService.API.EventHandlers
 
         public void Stop() => MessageHandler.Stop();
 
-        private IMessageHandler MessageHandler { get; }
+        private IMessageHandler<ProductCreatedEventHandler> MessageHandler { get; }
 
         private IProductsRepository Repository { get; }
 

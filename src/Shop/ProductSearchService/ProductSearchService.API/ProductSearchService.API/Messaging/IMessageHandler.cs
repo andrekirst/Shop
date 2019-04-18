@@ -1,13 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-
-namespace ProductSearchService.API.Messaging
+﻿namespace ProductSearchService.API.Messaging
 {
-    public interface IMessageHandler
+    public interface IMessageHandler<TCallback>
+        where TCallback : IMessageHandlerCallback
     {
-        void Start(IMessageHandlerCallback callback);
+        void Start(TCallback callback);
 
         void Stop();
     }

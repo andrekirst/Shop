@@ -54,7 +54,7 @@ namespace ProductSearchService.API
                 {
                     options.AddPolicy("CorsPolicy", policyBuilder =>
                         policyBuilder
-                            .WithOrigins("http://localhost:5101")
+                            .WithOrigins(Environment.GetEnvironmentVariable("ASPNETCORE_URLS"))
                             .AllowAnyOrigin()
                             .AllowAnyMethod()
                             .AllowAnyHeader());
@@ -127,9 +127,11 @@ namespace ProductSearchService.API
             }
 
             //app.UseHttpsRedirection();
-            app.UseRouting(configure: routes =>
+            app.UseRouting();
+
+            app.UseEndpoints(endpoints =>
             {
-                routes.MapControllers();
+                endpoints.MapControllers();
             });
 
             app.UseAuthorization();

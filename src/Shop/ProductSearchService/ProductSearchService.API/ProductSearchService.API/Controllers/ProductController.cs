@@ -1,10 +1,8 @@
 ﻿using FluentTimeSpan;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 using ProductSearchService.API.Caching;
 using ProductSearchService.API.Events;
-using ProductSearchService.API.Hubs;
 using ProductSearchService.API.Messaging;
 using ProductSearchService.API.Model;
 using ProductSearchService.API.Repositories;
@@ -118,7 +116,7 @@ namespace ProductSearchService.API.Controllers
                     return Ok(value: products);
                 }
 
-                return NotFound();
+                return NotFound(null);
             }
             catch (TaskCanceledException exception)
             {

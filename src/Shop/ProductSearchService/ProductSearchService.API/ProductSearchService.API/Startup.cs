@@ -46,21 +46,13 @@ namespace ProductSearchService.API
                 logger: sp.GetService<ILogger<RabbitMessageQueueMessagePublisher>>()));
 
             services
-                .AddMvc()
+                .AddControllers()
                 .AddNewtonsoftJson();
 
-            services
-                .AddCors(options =>
-                {
-                    options.AddPolicy("CorsPolicy", policyBuilder =>
-                        policyBuilder
-                            .WithOrigins(Environment.GetEnvironmentVariable("ASPNETCORE_URLS"))
-                            .AllowAnyOrigin()
-                            .AllowAnyMethod()
-                            .AllowAnyHeader());
-                });
-
-            services.AddSignalR();
+            services.AddSignalR(signalrConfiguration =>
+            {
+                signalrConfiguration.EnableDetailedErrors = true;
+            });
 
             services.AddSingleton<IElasticClientSettings, ElasticClientSettings>();
             services.AddSingleton<IProductsRepository, ProductsRepository>();
@@ -82,24 +74,10 @@ namespace ProductSearchService.API
                 routingKey: "Event:ProductNameChangedEvent",
                 messageSerializer: serviceprovider.GetService<IMessageSerializer>(),
                 logger: serviceprovider.GetService<ILogger<RabbitMessageQueueMessageHandler<ProductNameChangedEventHandler>>>()));
-
-            var serviceprovider = services.BuildServiceProvider();
             
-            ProductCreatedEventHandler productCreatedEventHandler = new ProductCreatedEventHandler(
-                messageHandler: serviceprovider.GetService<IMessageHandler<ProductCreatedEventHandler>>(),
-                repository: serviceprovider.GetService<IProductsRepository>(),
-                messageSerializer: serviceprovider.GetService<IMessageSerializer>(),
-                productCache: serviceprovider.GetService<ICache<Product>>());
-            
-            ProductNameChangedEventHandler productNameChangedEventHandler = new ProductNameChangedEventHandler(
-                messageHandler: serviceprovider.GetService<IMessageHandler<ProductNameChangedEventHandler>>(),
-                repository: serviceprovider.GetService<IProductsRepository>(),
-                messageSerializer: serviceprovider.GetService<IMessageSerializer>(),
-                productCache: serviceprovider.GetService<ICache<Product>>(),
-                productHubContext: serviceprovider.GetService<IHubContext<ProductHub>>());
-
-            productCreatedEventHandler.Start();
-            productNameChangedEventHandler.Start();
+            services
+                .AddHostedService<ProductNameChangedEventHandler>()
+                .AddHostedService<ProductCreatedEventHandler>();
 
             services.AddHealthChecks(checks: checks =>
             {
@@ -109,14 +87,8 @@ namespace ProductSearchService.API
             });
         }
 
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IHostApplicationLifetime lifetime)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
-            app.UseMvc();
-            app.UseDefaultFiles();
-            app.UseStaticFiles();
-
-            SetupAutoMapper();
-
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
@@ -125,6 +97,8 @@ namespace ProductSearchService.API
             {
                 app.UseHsts();
             }
+
+            SetupAutoMapper();
 
             //app.UseHttpsRedirection();
             app.UseRouting();
@@ -138,7 +112,7 @@ namespace ProductSearchService.API
 
             app.UseSignalR(routes =>
             {
-                routes.MapHub<ProductHub>("/ProductHub");
+                routes.MapHub<ProductHub>("/producthub");
             });
         }
 

@@ -6,19 +6,14 @@ namespace ProductSearchService.API.Hubs
 {
     public class ProductHub : Hub
     {
-        public async Task SendMessage()
+        public override async Task OnConnectedAsync()
         {
-            //await Clients.
+            await base.OnConnectedAsync();
         }
 
-        public override Task OnConnectedAsync()
+        public override async Task OnDisconnectedAsync(Exception exception)
         {
-            return base.OnConnectedAsync();
-        }
-
-        public override Task OnDisconnectedAsync(Exception exception)
-        {
-            return base.OnDisconnectedAsync(exception);
+            await base.OnDisconnectedAsync(exception);
         }
     }
 }

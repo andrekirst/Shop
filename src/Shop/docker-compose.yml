@@ -5,7 +5,8 @@ services:
     image: rabbitmq:3-management
     container_name: rabbitmq
     volumes:
-      - data.rabbitmq:/DockerData/Shop/RabbitMq
+      - data.rabbitmq:/var/lib/rabbitmq
+      - log.rabbitmq:/var/log/rabbitmq
     ports:
       - "15672:15672"
       - "5672:5672"
@@ -51,36 +52,36 @@ services:
     environment:
       - ELASTICSEARCH_HOSTS=http://elastic:9200
   
-  heartbeat:
-    image: docker.elastic.co/beats/heartbeat:7.0.0
-    container_name: heartbeat
-    volumes:
-      - './heartbeat.yml:/usr/share/heartbeat/heartbeat.yml'
-    depends_on:
-      - elastic
-      - kibana
-      - productsearchservice.api
-      - rabbitmq
-      - mailserver
-    environment:
-      - setup.kibana.host=kibana:5601
-      - setup.elasticsearch.hosts=["elastic:9200"]
+#   heartbeat:
+#     image: docker.elastic.co/beats/heartbeat:7.0.0
+#     container_name: heartbeat
+#     volumes:
+#       - './heartbeat.yml:/usr/share/heartbeat/heartbeat.yml'
+#     depends_on:
+#       - elastic
+#       - kibana
+#       - productsearchservice.api
+#       - rabbitmq
+#       - mailserver
+#     environment:
+#       - setup.kibana.host=kibana:5601
+#       - setup.elasticsearch.hosts=["elastic:9200"]
   
-  metricbeat:
-    image: docker.elastic.co/beats/metricbeat:7.0.0
-    container_name: metricbeat
-    volumes:
-      - './metricbeat.yml:/usr/share/metricbeat/metricbeat.yml'
-    environment:
-      - ELASTICSEARCH_HOST=elastic:9200
-      - KIBANA_HOST=kibana:5601
+#   metricbeat:
+#     image: docker.elastic.co/beats/metricbeat:7.0.0
+#     container_name: metricbeat
+#     volumes:
+#       - './metricbeat.yml:/usr/share/metricbeat/metricbeat.yml'
+#     environment:
+#       - ELASTICSEARCH_HOST=elastic:9200
+#       - KIBANA_HOST=kibana:5601
 
-  mailserver:
-    image: djfarrelly/maildev
-    container_name: mailserver
-    ports:
-      - "25:25"
-      - "4000:80"
+#   mailserver:
+#     image: djfarrelly/maildev
+#     container_name: mailserver
+#     ports:
+#       - "25:25"
+#       - "4000:80"
   
   logserver:
     image: datalust/seq:5
@@ -107,6 +108,8 @@ volumes:
   data.elastic:
     external: true
   data.rabbitmq:
+    external: true
+  log.rabbitmq:
     external: true
   data.redis:
     external: true

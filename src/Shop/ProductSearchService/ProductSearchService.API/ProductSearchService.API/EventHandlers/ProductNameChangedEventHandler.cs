@@ -1,6 +1,10 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading;
+using System.Threading.Tasks;
 using FluentTimeSpan;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using ProductSearchService.API.Caching;
 using ProductSearchService.API.Events;
 using ProductSearchService.API.Hubs;
@@ -10,20 +14,22 @@ using ProductSearchService.API.Repositories;
 
 namespace ProductSearchService.API.EventHandlers
 {
-    public class ProductNameChangedEventHandler : IMessageHandlerCallback
+    public class ProductNameChangedEventHandler : BackgroundService, IMessageHandlerCallback
     {
         public ProductNameChangedEventHandler(
             IMessageHandler<ProductNameChangedEventHandler> messageHandler,
             IProductsRepository repository,
             IMessageSerializer messageSerializer,
             ICache<Product> productCache,
-            IHubContext<ProductHub> productHubContext)
+            IHubContext<ProductHub> productHubContext,
+            ILogger<ProductNameChangedEventHandler> logger)
         {
             MessageHandler = messageHandler;
             Repository = repository;
             MessageSerializer = messageSerializer;
             ProductCache = productCache;
             ProductHubContext = productHubContext;
+            Logger = logger;
         }
 
         private IMessageHandler<ProductNameChangedEventHandler> MessageHandler { get; }
@@ -35,6 +41,8 @@ namespace ProductSearchService.API.EventHandlers
         private ICache<Product> ProductCache { get; }
         
         private IHubContext<ProductHub> ProductHubContext { get; }
+        
+        private ILogger<ProductNameChangedEventHandler> Logger { get; }
 
         public Task<bool> HandleMessageAsync(string messageType, string message)
         {
@@ -47,23 +55,41 @@ namespace ProductSearchService.API.EventHandlers
 
         public void Stop() => MessageHandler.Stop();
 
+        public override Task StartAsync(CancellationToken cancellationToken)
+        {
+            Start();
+            return base.StartAsync(cancellationToken);
+        }
+
+        public override Task StopAsync(CancellationToken cancellationToken)
+        {
+            Stop();
+            return base.StopAsync(cancellationToken);
+        }
+
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        {
+            while (!stoppingToken.IsCancellationRequested)
+            {
+                Logger.LogInformation(message: $"Worker running at: {DateTimeOffset.Now}");
+                await Task.Delay(millisecondsDelay: 1000, cancellationToken: stoppingToken);
+            }
+        }
+
         private async Task<bool> HandleAsync(ProductNameChangedEvent @event)
         {
             bool successfulUpdated = await Repository.UpdateProductName(
                 productnumber: @event.Productnumber,
                 name: @event.Name);
 
-            await ProductHubContext.Clients.All.SendAsync(
-                method: $"UpdateProductName[Productnumber={@event.Productnumber}]",
-                arg1: @event.Productnumber,
-                arg2: @event.Name);
+            PublishProductNameUpdated(@event: @event);
 
             if (successfulUpdated)
             {
                 var product = ProductCache.Get(@event.Productnumber);
 
                 if (product != null)
-                {
+                {                    
                     product.Name = @event.Name;
 
                     ProductCache.Set(
@@ -75,5 +101,8 @@ namespace ProductSearchService.API.EventHandlers
 
             return successfulUpdated;
         }
+
+        private void PublishProductNameUpdated(ProductNameChangedEvent @event) =>
+            _ = Task.Factory.StartNew(() => ProductHubContext.Clients.All.SendAsync($"UpdateProductName[Productnumber={@event.Productnumber}]", @event.Name));
     }
 }

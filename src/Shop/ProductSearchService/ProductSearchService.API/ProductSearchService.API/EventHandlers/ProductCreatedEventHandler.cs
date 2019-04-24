@@ -1,5 +1,9 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading;
+using System.Threading.Tasks;
 using FluentTimeSpan;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using ProductSearchService.API.Caching;
 using ProductSearchService.API.Events;
 using ProductSearchService.API.Messaging;
@@ -8,18 +12,20 @@ using ProductSearchService.API.Repositories;
 
 namespace ProductSearchService.API.EventHandlers
 {
-    public class ProductCreatedEventHandler : IMessageHandlerCallback
+    public class ProductCreatedEventHandler : BackgroundService, IMessageHandlerCallback
     {
         public ProductCreatedEventHandler(
             IMessageHandler<ProductCreatedEventHandler> messageHandler,
             IProductsRepository repository,
             IMessageSerializer messageSerializer,
-            ICache<Product> productCache)
+            ICache<Product> productCache,
+            ILogger<ProductCreatedEventHandler> logger)
         {
             MessageHandler = messageHandler;
             Repository = repository;
             MessageSerializer = messageSerializer;
             ProductCache = productCache;
+            Logger = logger;
         }
 
         public void Start() => MessageHandler.Start(callback: this);
@@ -31,7 +37,10 @@ namespace ProductSearchService.API.EventHandlers
         private IProductsRepository Repository { get; }
 
         private IMessageSerializer MessageSerializer { get; }
-        public ICache<Product> ProductCache { get; }
+        
+        private ICache<Product> ProductCache { get; }
+        
+        private ILogger<ProductCreatedEventHandler> Logger { get; }
 
         public Task<bool> HandleMessageAsync(string messageType, string message)
         {
@@ -61,6 +70,28 @@ namespace ProductSearchService.API.EventHandlers
             }
 
             return createdSuccessfully;
+        }
+
+        public override Task StartAsync(CancellationToken cancellationToken)
+        {
+            Start();
+            return base.StartAsync(cancellationToken);
+        }
+
+        public override Task StopAsync(CancellationToken cancellationToken)
+        {
+            Stop();
+            return base.StopAsync(cancellationToken);
+        }
+
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        {
+            Start();
+            while (!stoppingToken.IsCancellationRequested)
+            {
+                Logger.LogInformation($"Worker running at: {DateTimeOffset.Now}");
+                await Task.Delay(1000, stoppingToken);
+            }
         }
     }
 }

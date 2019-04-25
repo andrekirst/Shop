@@ -2,12 +2,12 @@
 
 namespace ProductSearchService.API.Caching
 {
-    public interface ICache<T>
+    public interface ICache
     {
-        void Set(string key, T value, TimeSpan? duration = null);
+        void Set<T>(string key, T value, TimeSpan? duration = null);
 
-        T Get(string key);
+        T Get<T>(string key);
 
-        void Update(string key, Action<T> action, TimeSpan? duration = null);
+        void Update<T>(string key, Action<T> action, TimeSpan? duration = null);
     }
 }

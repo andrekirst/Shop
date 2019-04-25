@@ -21,14 +21,12 @@ namespace ProductSearchService.API.Controllers
             IProductsRepository repository,
             ILogger<ProductController> logger,
             IMessagePublisher messagePublisher,
-            ICache<Product> productCache,
-            ICache<List<Product>> productsCache)
+            ICache cache)
         {
             Logger = logger;
             Repository = repository;
             MessagePublisher = messagePublisher;
-            ProductCache = productCache;
-            ProductsCache = productsCache;
+            Cache = cache;
         }
 
         private ILogger<ProductController> Logger { get; }
@@ -36,10 +34,8 @@ namespace ProductSearchService.API.Controllers
         private IProductsRepository Repository { get; }
 
         private IMessagePublisher MessagePublisher { get; }
-
-        private ICache<Product> ProductCache { get; }
-
-        private ICache<List<Product>> ProductsCache { get; }
+        
+        private ICache Cache { get; }
 
         [HttpGet]
         [ProducesResponseType(statusCode: 404)]
@@ -50,7 +46,7 @@ namespace ProductSearchService.API.Controllers
             string cacheKey = $"ProductSearchService.Product[Productnumber=\"{productnumber}\"]";
             try
             {
-                var product = ProductCache.Get(key: cacheKey);
+                var product = Cache.Get<Product>(key: cacheKey);
                 bool isCached = product != null;
                 
                 if (!isCached)
@@ -62,13 +58,13 @@ namespace ProductSearchService.API.Controllers
 
                 if (product != null)
                 {
-                    _ = Task.Factory.StartNew(() => PublishProductSelectedEvent(product: product));
+                    _ = Task.Factory.StartNew(() => QueueProductSelectedEvent(product: product));
                     if (!isCached)
                     {
-                        _ = Task.Factory.StartNew(() => ProductCache.Set(
+                        _ = Task.Factory.StartNew(() => Cache.Set(
                             key: cacheKey,
                             value: product,
-                            duration: 15.Minutes())); 
+                            duration: 24.Hours())); 
                     }
 
                     return Ok(value: product);
@@ -92,7 +88,7 @@ namespace ProductSearchService.API.Controllers
             string cacheKey = $"ProductSearchService.Products[filter=\"{filter}\"]";
             try
             {
-                var products = ProductsCache.Get(key: cacheKey);
+                var products = Cache.Get<List<Product>>(key: cacheKey);
                 bool isCached = products != null;
                 if (!isCached)
                 {
@@ -101,13 +97,13 @@ namespace ProductSearchService.API.Controllers
                         cancellationToken: cancellationToken);
                 }
 
-                _ = Task.Factory.StartNew(() => PublishProductsSearchedEvent(products: products, filter: filter));
+                _ = Task.Factory.StartNew(() => QueueProductsSearchedEvent(products: products, filter: filter));
 
                 if (products != null && products.Any())
                 {
                     if (!isCached)
                     {
-                        ProductsCache.Set(
+                        Cache.Set(
                            key: cacheKey,
                            value: products,
                            duration: 1.Minutes());
@@ -127,7 +123,7 @@ namespace ProductSearchService.API.Controllers
             return NotFound();
         }
 
-        private Task PublishProductsSearchedEvent(List<Product> products, string filter) =>
+        private Task QueueProductsSearchedEvent(List<Product> products, string filter) =>
             MessagePublisher.SendEventAsync(
                 @event: new ProductsSearchedEvent(
                 filter: filter,
@@ -135,7 +131,7 @@ namespace ProductSearchService.API.Controllers
                 numberOfProductsFound: products?.Count ?? 0),
                 messageType: "ProductsSearchedEvent");
 
-        private Task PublishProductSelectedEvent(Product product) =>
+        private Task QueueProductSelectedEvent(Product product) =>
             MessagePublisher.SendEventAsync(
                 @event: new ProductSelectedEvent(
                     productnumber: product.Productnumber,

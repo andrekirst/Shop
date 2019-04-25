@@ -9,8 +9,6 @@ namespace ProductSearchService.API.Messaging
 
         string Serialize(object value);
 
-        JObject Deserialize(string value);
-
         T Deserialize<T>(string value);
 
         Encoding Encoding { get; }

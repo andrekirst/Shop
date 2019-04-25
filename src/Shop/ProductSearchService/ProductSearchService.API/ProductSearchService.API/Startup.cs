@@ -1,24 +1,22 @@
 ﻿using System;
+using AutoMapper;
+using FluentTimeSpan;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using AutoMapper;
-using FluentTimeSpan;
 using Microsoft.Extensions.HealthChecks;
-using Microsoft.Extensions.Logging;
-using ProductSearchService.API.Checks;
-using ProductSearchService.API.Repositories;
-using ProductSearchService.API.Commands;
-using ProductSearchService.API.Model;
-using ProductSearchService.API.Events;
-using ProductSearchService.API.Messaging;
-using ProductSearchService.API.Caching;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using ProductSearchService.API.Caching;
+using ProductSearchService.API.Checks;
+using ProductSearchService.API.Commands;
 using ProductSearchService.API.EventHandlers;
+using ProductSearchService.API.Events;
 using ProductSearchService.API.Hubs;
-using Microsoft.AspNetCore.SignalR;
-using Microsoft.AspNetCore.Cors.Infrastructure;
+using ProductSearchService.API.Messaging;
+using ProductSearchService.API.Model;
+using ProductSearchService.API.Repositories;
 
 namespace ProductSearchService.API
 {
@@ -49,6 +47,23 @@ namespace ProductSearchService.API
                 .AddControllers()
                 .AddNewtonsoftJson();
 
+            //services.AddSwaggerGen(swaggerConfiguration =>
+            //{
+            //    swaggerConfiguration.SwaggerDoc(
+            //        name: "ProductSearchService.API - v1",
+            //        info: new Info
+            //        {
+            //            Title = "ProductSearchService.API",
+            //            Version = "v1",
+            //            Contact = new Contact
+            //            {
+            //                Email = "github@andrekirst.de",
+            //                Name = "André Kirst",
+            //                Url = "https://github.com/andrekirst/Shop"
+            //            }
+            //        });
+            //});
+
             services.AddSignalR(signalrConfiguration =>
             {
                 signalrConfiguration.EnableDetailedErrors = true;
@@ -56,7 +71,7 @@ namespace ProductSearchService.API
 
             services.AddSingleton<IElasticClientSettings, ElasticClientSettings>();
             services.AddSingleton<IProductsRepository, ProductsRepository>();
-            services.AddSingleton(typeof(ICache<>), typeof(RedisCache<>));
+            services.AddSingleton<ICache, RedisCache>();
             services.AddSingleton<IRedisCacheSettings, RedisCacheSettings>();
 
             services.AddSingleton<IMessageHandler<ProductCreatedEventHandler>>(serviceprovider => new RabbitMessageQueueMessageHandler<ProductCreatedEventHandler>(
@@ -74,7 +89,7 @@ namespace ProductSearchService.API
                 routingKey: "Event:ProductNameChangedEvent",
                 messageSerializer: serviceprovider.GetService<IMessageSerializer>(),
                 logger: serviceprovider.GetService<ILogger<RabbitMessageQueueMessageHandler<ProductNameChangedEventHandler>>>()));
-            
+
             services
                 .AddHostedService<ProductNameChangedEventHandler>()
                 .AddHostedService<ProductCreatedEventHandler>();
@@ -97,6 +112,14 @@ namespace ProductSearchService.API
             {
                 app.UseHsts();
             }
+
+            //app.UseSwagger();
+            //app.UseSwaggerUI(swaggerUiConfiguration =>
+            //{
+            //    swaggerUiConfiguration.SwaggerEndpoint(
+            //        url: "/swagger/v1/swagger.json",
+            //        name: "ProductSearchService.API - v1");
+            //});
 
             SetupAutoMapper();
 

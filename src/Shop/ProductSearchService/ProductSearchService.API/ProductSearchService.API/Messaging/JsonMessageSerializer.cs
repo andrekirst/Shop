@@ -33,11 +33,6 @@ namespace ProductSearchService.API.Messaging
                 value: value,
                 settings: Settings);
 
-        public JObject Deserialize(string value) =>
-            JsonConvert.DeserializeObject<JObject>(
-                value: value,
-                settings: Settings);
-
         public T Deserialize<T>(string value) =>
             JsonConvert
             .DeserializeObject<JObject>(

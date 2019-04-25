@@ -18,13 +18,13 @@ namespace ProductSearchService.API.EventHandlers
             IMessageHandler<ProductCreatedEventHandler> messageHandler,
             IProductsRepository repository,
             IMessageSerializer messageSerializer,
-            ICache<Product> productCache,
+            ICache cache,
             ILogger<ProductCreatedEventHandler> logger)
         {
             MessageHandler = messageHandler;
             Repository = repository;
             MessageSerializer = messageSerializer;
-            ProductCache = productCache;
+            Cache = cache;
             Logger = logger;
         }
 
@@ -38,7 +38,7 @@ namespace ProductSearchService.API.EventHandlers
 
         private IMessageSerializer MessageSerializer { get; }
         
-        private ICache<Product> ProductCache { get; }
+        private ICache Cache { get; }
         
         private ILogger<ProductCreatedEventHandler> Logger { get; }
 
@@ -51,6 +51,7 @@ namespace ProductSearchService.API.EventHandlers
 
         private async Task<bool> HandleAsync(ProductCreatedEvent @event)
         {
+            string cacheKey = $"ProductSearchService.Product[Productnumber=\"{@event.Productnumber}\"]";
             bool createdSuccessfully = await Repository.CreateProduct(
                 productnumber: @event.Productnumber,
                 name: @event.Name,
@@ -58,15 +59,15 @@ namespace ProductSearchService.API.EventHandlers
 
             if (createdSuccessfully)
             {
-                ProductCache.Set(
-                    key: @event.Productnumber,
+                Cache.Set(
+                    key: cacheKey,
                     value: new Product
                     {
                         Productnumber = @event.Productnumber,
                         Name = @event.Name,
                         Description = @event.Description
                     },
-                    duration: 1.Hours());
+                    duration: 24.Hours());
             }
 
             return createdSuccessfully;

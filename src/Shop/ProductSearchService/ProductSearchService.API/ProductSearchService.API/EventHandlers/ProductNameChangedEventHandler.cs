@@ -20,14 +20,14 @@ namespace ProductSearchService.API.EventHandlers
             IMessageHandler<ProductNameChangedEventHandler> messageHandler,
             IProductsRepository repository,
             IMessageSerializer messageSerializer,
-            ICache<Product> productCache,
+            ICache cache,
             IHubContext<ProductHub> productHubContext,
             ILogger<ProductNameChangedEventHandler> logger)
         {
             MessageHandler = messageHandler;
             Repository = repository;
             MessageSerializer = messageSerializer;
-            ProductCache = productCache;
+            Cache = cache;
             ProductHubContext = productHubContext;
             Logger = logger;
         }
@@ -37,8 +37,8 @@ namespace ProductSearchService.API.EventHandlers
         private IProductsRepository Repository { get; }
 
         private IMessageSerializer MessageSerializer { get; }
-
-        private ICache<Product> ProductCache { get; }
+        
+        private ICache Cache { get; }
         
         private IHubContext<ProductHub> ProductHubContext { get; }
         
@@ -78,6 +78,7 @@ namespace ProductSearchService.API.EventHandlers
 
         private async Task<bool> HandleAsync(ProductNameChangedEvent @event)
         {
+            string cacheKey = $"ProductSearchService.Product[Productnumber=\"{@event.Productnumber}\"]";
             bool successfulUpdated = await Repository.UpdateProductName(
                 productnumber: @event.Productnumber,
                 name: @event.Name);
@@ -86,17 +87,13 @@ namespace ProductSearchService.API.EventHandlers
 
             if (successfulUpdated)
             {
-                var product = ProductCache.Get(@event.Productnumber);
-
-                if (product != null)
-                {                    
-                    product.Name = @event.Name;
-
-                    ProductCache.Set(
-                        key: @event.Productnumber,
-                        value: product,
-                        duration: 24.Hours());
-                }
+                Cache.Update<Product>(
+                    key: cacheKey,
+                    (product) =>
+                    {
+                        product.Name = @event.Name;
+                    },
+                    duration: 24.Hours());
             }
 
             return successfulUpdated;

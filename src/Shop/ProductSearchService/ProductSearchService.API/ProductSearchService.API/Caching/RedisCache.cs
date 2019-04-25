@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using FluentTimeSpan;
 using Microsoft.Extensions.Logging;
 using Polly;
@@ -7,10 +6,10 @@ using ServiceStack.Redis;
 
 namespace ProductSearchService.API.Caching
 {
-    public class RedisCache<T> : ICache<T>
+    public class RedisCache : ICache
     {
         public RedisCache(
-            ILogger<RedisCache<T>> logger,
+            ILogger<RedisCache> logger,
             IRedisCacheSettings settings)
         {
             Logger = logger;
@@ -36,36 +35,33 @@ namespace ProductSearchService.API.Caching
                     });
         }
 
-        private ILogger<RedisCache<T>> Logger { get; }
+        private ILogger<RedisCache> Logger { get; }
 
-        public IRedisCacheSettings Settings { get; }
+        private IRedisCacheSettings Settings { get; }
 
-        public IRedisClient RedisClient { get; private set; }
+        private IRedisClient RedisClient { get; set; }
 
-        public T Get(string key)
+        public T Get<T>(string key)
         {
             return Policy
                 .Handle<Exception>()
                 .WaitAndRetry(
-                retryCount: 3,
-                sleepDurationProvider: r => 1.Seconds(),
-                onRetry: (ex, ts) =>
-                {
-                    Logger.LogError(exception: ex, message: $"RedisCache: Get key \"{key}\"");
-                })
+                    retryCount: 3,
+                    sleepDurationProvider: r => 1.Seconds(),
+                    onRetry: (ex, ts) =>
+                    {
+                        Logger.LogError(exception: ex, message: $"RedisCache: Get key \"{key}\"");
+                    })
                 .Execute(() =>
                 {
-                    Stopwatch stopwatch = new Stopwatch();
-                    Logger.LogInformation($"RedisCache: Get data for key \"{key}\"");
-                    stopwatch.Start();
+                    Logger.LogInformation($"RedisCache: Begin get data for key \"{key}\"");
                     var item = RedisClient.Get<T>(key: key);
-                    stopwatch.Stop();
-                    Logger.LogInformation($"RedisCache: Get data for key \"{key}\" tooked {stopwatch.ElapsedMilliseconds}ms");
+                    Logger.LogInformation($"RedisCache: End get data for key \"{key}\"");
                     return item;
                 });
         }
 
-        public void Set(string key, T value, TimeSpan? duration = null)
+        public void Set<T>(string key, T value, TimeSpan? duration = null)
         {
             Policy
                 .Handle<Exception>()
@@ -90,12 +86,13 @@ namespace ProductSearchService.API.Caching
                         {
                             RedisClient.Set(
                                 key: key,
-                                value: value); Logger.LogInformation(message: $"RedisCache: Cache key \"{key}\"");
+                                value: value);
+                            Logger.LogInformation(message: $"RedisCache: Cache key \"{key}\"");
                         }
                     });
         }
 
-        public void Update(string key, Action<T> action, TimeSpan? duration = null)
+        public void Update<T>(string key, Action<T> action, TimeSpan? duration = null)
         {
             Policy
                 .Handle<Exception>()
@@ -128,7 +125,8 @@ namespace ProductSearchService.API.Caching
                                 {
                                     RedisClient.Set(
                                         key: key,
-                                        value: item); Logger.LogInformation(message: $"RedisCache: Set data for key \"{key}\" to update");
+                                        value: item);
+                                    Logger.LogInformation(message: $"RedisCache: Set data for key \"{key}\" to update");
                                 }
                             }
                         }

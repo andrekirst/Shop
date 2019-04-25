@@ -114,11 +114,11 @@ namespace ProductSearchService.API.Messaging
         {
             if (await HandleEvent(@event: @event))
             {
-                _channel.BasicAck(deliveryTag: @event.DeliveryTag, multiple: false);
+                _channel.BasicAck(deliveryTag: @event.DeliveryTag, multiple: true);
             }
             else
             {
-                _channel.BasicReject(deliveryTag: @event.DeliveryTag, requeue: false);
+                _channel.BasicReject(deliveryTag: @event.DeliveryTag, requeue: true);
             }
         }
 

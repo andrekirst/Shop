@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -60,15 +59,11 @@ namespace ProductSearchService.API.Repositories
 
             Logger.LogDebug(message: $"{queryBody}");
 
-            Stopwatch stopwatch = new Stopwatch();
-            stopwatch.Start();
             var response = await ElasticClient.SearchAsync<StringResponse>(
                     index: Index,
                     type: Type,
                     body: queryBody,
                     ctx: cancellationToken);
-            stopwatch.Stop();
-            Logger.LogInformation(message: $"ElasticClient.SearchAsync tooked {stopwatch.ElapsedMilliseconds}ms");
 
             if (!response.Success)
             {
@@ -78,16 +73,11 @@ namespace ProductSearchService.API.Repositories
 
             // TODO Json interface
 
-            stopwatch.Reset();
-            stopwatch.Start();
             var result = response.Success
                 ? JObject.Parse(json: response.Body)[propertyName: "hits"][key: "hits"]
                     .Select(selector: s => s[key: "_source"].ToObject<Product>())
                     .ToList()
                 : null;
-            stopwatch.Stop();
-            Logger.LogInformation(message: $"Parsing tooked {stopwatch.ElapsedMilliseconds}ms");
-
             return result;
         }
 
@@ -113,7 +103,7 @@ namespace ProductSearchService.API.Repositories
                         .ToObject<Product>();
                 }
             }
-            
+
             Logger.LogError(message: response.Body);
             Logger.LogDebug(message: response.DebugInformation);
 

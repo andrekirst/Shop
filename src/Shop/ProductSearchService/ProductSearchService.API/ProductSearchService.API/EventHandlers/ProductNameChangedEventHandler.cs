@@ -7,6 +7,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ProductSearchService.API.Caching;
 using ProductSearchService.API.Events;
+using ProductSearchService.API.Exceptions;
 using ProductSearchService.API.Hubs;
 using ProductSearchService.API.Messaging;
 using ProductSearchService.API.Model;
@@ -48,7 +49,9 @@ namespace ProductSearchService.API.EventHandlers
         {
             return messageType == "Event:ProductNameChangedEvent"
                 ? HandleAsync(@event: MessageSerializer.Deserialize<ProductNameChangedEvent>(value: message))
-                : Task.FromResult(false);
+                : throw new WrongMessageTypeGivenException(
+                    expectedMessageType: "Event:ProductNameChangedEvent",
+                    currentMessageType: messageType);
         }
 
         public void Start() => MessageHandler.Start(callback: this);
@@ -71,8 +74,8 @@ namespace ProductSearchService.API.EventHandlers
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                Logger.LogInformation(message: $"Worker running at: {DateTimeOffset.Now}");
-                await Task.Delay(millisecondsDelay: 1000, cancellationToken: stoppingToken);
+                Logger.LogDebug(message: $"Worker running at: {DateTimeOffset.Now}");
+                await Task.Delay(delay: 1.Minutes(), cancellationToken: stoppingToken);
             }
         }
 
@@ -89,7 +92,7 @@ namespace ProductSearchService.API.EventHandlers
             {
                 Cache.Update<Product>(
                     key: cacheKey,
-                    (product) =>
+                    action: (product) =>
                     {
                         product.Name = @event.Name;
                     },

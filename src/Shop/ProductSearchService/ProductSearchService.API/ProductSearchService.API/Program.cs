@@ -26,16 +26,9 @@ namespace ProductSearchService.API
                 })
                 .UseHealthChecks(path: "/health", timeout: 3.Seconds())
                 .UseApplicationInsights(instrumentationKey: "ProductSearchService.API")
-                .UseSerilog()
                 .ConfigureLogging(configureLogging: (hostingContext, logging) =>
                 {
-                    logging.AddConfiguration(configuration: hostingContext.Configuration.GetSection(key: "Logging"));
-                    logging.AddConsole(configure =>
-                    {
-                        configure.IncludeScopes = false;
-                        configure.TimestampFormat = "hh:mm:ss.FFF";
-
-                    });
+                    logging.AddConsole();
                 })
                 .Build();
     }

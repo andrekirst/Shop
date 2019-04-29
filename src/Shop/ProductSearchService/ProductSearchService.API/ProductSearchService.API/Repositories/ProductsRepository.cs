@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Elasticsearch.Net;
 using FluentTimeSpan;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using ProductSearchService.API.Model;
 using static Elasticsearch.Net.PostData;
@@ -46,22 +47,24 @@ namespace ProductSearchService.API.Repositories
         public async Task<List<Product>> Search(string filter, CancellationToken cancellationToken)
         {
             Logger.LogInformation(message: $"ProductsRepository: Call SearchAsync for filter \"{filter}\"");
+
             var queryBody = Serializable(o: new
             {
                 query = new
                 {
-                    query_string = new
+                    multi_match = new
                     {
-                        query = $"*{filter}*"
+                        fields = new[] { $"{nameof(Product.Name)}^2", nameof(Product.Description) },
+                        query = filter,
+                        fuzziness = 10
                     }
                 }
             });
 
-            Logger.LogDebug(message: $"{queryBody}");
+            Logger.LogDebug(message: $"QueryBody: \"{JsonConvert.SerializeObject(queryBody)}\"");
 
             var response = await ElasticClient.SearchAsync<StringResponse>(
                     index: Index,
-                    type: Type,
                     body: queryBody,
                     ctx: cancellationToken);
 
@@ -86,7 +89,6 @@ namespace ProductSearchService.API.Repositories
             Logger.LogInformation(message: $"ProductsRepository: Call GetAsync to index \"{Index}\", type \"{Type}\" and id \"{productnumber}\"");
             var response = await ElasticClient.GetAsync<StringResponse>(
                     index: Index,
-                    type: Type,
                     id: productnumber,
                     ctx: cancellationToken);
 
@@ -114,7 +116,6 @@ namespace ProductSearchService.API.Repositories
         {
             StringResponse response = await ElasticClient.IndexAsync<StringResponse>(
                 index: Index,
-                type: Type,
                 id: productnumber,
                 body: PostData.Serializable(o: new
                 {
@@ -129,7 +130,6 @@ namespace ProductSearchService.API.Repositories
         {
             var response = await ElasticClient.UpdateAsync<StringResponse>(
                 index: Index,
-                type: Type,
                 id: productnumber,
                 body: PostData.Serializable(o: new
                 {

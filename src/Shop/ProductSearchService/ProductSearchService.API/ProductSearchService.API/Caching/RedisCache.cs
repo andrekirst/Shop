@@ -105,29 +105,25 @@ namespace ProductSearchService.API.Caching
                     })
                     .Execute(action: () =>
                     {
-                        Logger.LogInformation(message: $"RedisCache: Lock key \"{key}\" for update");
-                        using (RedisClient.AcquireLock(key: key, timeOut: 1.Seconds()))
+                        Logger.LogInformation(message: $"RedisCache: Get data for key \"{key}\" to update");
+                        T item = RedisClient.Get<T>(key: key);
+                        if (item != null)
                         {
-                            Logger.LogInformation(message: $"RedisCache: Get data for key \"{key}\" to update");
-                            T item = RedisClient.Get<T>(key: key);
-                            if (item != null)
+                            action?.Invoke(item);
+                            if (duration.HasValue)
                             {
-                                action?.Invoke(item);
-                                if (duration.HasValue)
-                                {
-                                    RedisClient.Set(
-                                        key: key,
-                                        value: item,
-                                        expiresIn: duration.Value);
-                                    Logger.LogInformation(message: $"RedisCache: Set data for key \"{key}\" to update with duration {duration.Value}");
-                                }
-                                else
-                                {
-                                    RedisClient.Set(
-                                        key: key,
-                                        value: item);
-                                    Logger.LogInformation(message: $"RedisCache: Set data for key \"{key}\" to update");
-                                }
+                                RedisClient.Set(
+                                    key: key,
+                                    value: item,
+                                    expiresIn: duration.Value);
+                                Logger.LogInformation(message: $"RedisCache: Set data for key \"{key}\" to update with duration {duration.Value}");
+                            }
+                            else
+                            {
+                                RedisClient.Set(
+                                    key: key,
+                                    value: item);
+                                Logger.LogInformation(message: $"RedisCache: Set data for key \"{key}\" to update");
                             }
                         }
                     });

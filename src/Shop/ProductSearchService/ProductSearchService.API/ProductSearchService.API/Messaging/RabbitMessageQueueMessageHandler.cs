@@ -73,12 +73,13 @@ namespace ProductSearchService.API.Messaging
                     };
 
                     var arguments = new Dictionary<string, object>()
-                        {
-                            { MessageType, Queue }
-                        };
+                    {
+                        { MessageType, Queue }
+                    };
 
                     _connection = factory.CreateConnection();
                     _channel = _connection.CreateModel();
+                    _channel.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
                     _channel.ExchangeDeclare(
                         exchange: Exchange,
                         type: ExchangeType.Topic,
@@ -95,30 +96,34 @@ namespace ProductSearchService.API.Messaging
                         routingKey: RoutingKey,
                         arguments: arguments);
                     _consumer = new AsyncEventingBasicConsumer(model: _channel);
+
                     _consumer.Received += Consumer_Received;
                     _consumerTag = _channel.BasicConsume(
                         queue: Queue,
-                        autoAck: false,
+                        autoAck: true,
                         consumer: _consumer);
                 });
         }
 
         public void Stop()
         {
-            _channel.BasicCancel(consumerTag: _consumerTag);
             _channel.Close(replyCode: 200, replyText: "Goodbye");
             _connection.Close(reasonCode: 200, reasonText: "Goodbye");
         }
 
         private async Task Consumer_Received(object sender, BasicDeliverEventArgs @event)
         {
-            if (await HandleEvent(@event: @event))
+            Logger.LogInformation(message: $"MessageHandler => Received => Exchange: \"{@event.Exchange}\", RoutingKey: \"{@event.RoutingKey}\"");
+            try
             {
-                _channel.BasicAck(deliveryTag: @event.DeliveryTag, multiple: true);
+                if(!await HandleEvent(@event: @event))
+                {
+                    throw new Exception("Do not ack!");
+                }
             }
-            else
+            catch (Exception)
             {
-                _channel.BasicReject(deliveryTag: @event.DeliveryTag, requeue: true);
+                throw;
             }
         }
 
@@ -126,6 +131,9 @@ namespace ProductSearchService.API.Messaging
         {
             string messageType = MessageSerializer.Encoding.GetString(bytes: (byte[])@event.BasicProperties.Headers[key: MessageType]);
             string body = MessageSerializer.Encoding.GetString(bytes: @event.Body);
+
+            Logger.LogInformation(message: $"MessageHandler => HandleEvent => Exchange: \"{@event.Exchange}\", RoutingKey: \"{@event.RoutingKey}\", MessageType: \"{messageType}\"");
+            Logger.LogDebug(message: $"MessageHandler => HandleEvent => Exchange: \"{@event.Exchange}\", RoutingKey: \"{@event.RoutingKey}\", MessageType: \"{messageType}\", Body: {body}");
 
             return _callback.HandleMessageAsync(messageType: messageType, message: body);
         }

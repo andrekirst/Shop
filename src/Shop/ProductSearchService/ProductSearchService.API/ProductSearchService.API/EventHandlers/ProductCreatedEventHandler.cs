@@ -6,6 +6,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ProductSearchService.API.Caching;
 using ProductSearchService.API.Events;
+using ProductSearchService.API.Exceptions;
 using ProductSearchService.API.Messaging;
 using ProductSearchService.API.Model;
 using ProductSearchService.API.Repositories;
@@ -46,7 +47,9 @@ namespace ProductSearchService.API.EventHandlers
         {
             return messageType == "Event:ProductCreatedEvent"
                 ? HandleAsync(@event: MessageSerializer.Deserialize<ProductCreatedEvent>(value: message))
-                : Task.FromResult(result: false);
+                : throw new WrongMessageTypeGivenException(
+                    expectedMessageType: "Event:ProductCreatedEvent",
+                    currentMessageType: messageType);
         }
 
         private async Task<bool> HandleAsync(ProductCreatedEvent @event)
@@ -90,8 +93,8 @@ namespace ProductSearchService.API.EventHandlers
             Start();
             while (!stoppingToken.IsCancellationRequested)
             {
-                Logger.LogInformation($"Worker running at: {DateTimeOffset.Now}");
-                await Task.Delay(1000, stoppingToken);
+                Logger.LogDebug($"Worker running at: {DateTimeOffset.Now}");
+                await Task.Delay(delay: 1.Minutes(), cancellationToken: stoppingToken);
             }
         }
     }

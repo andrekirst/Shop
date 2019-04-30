@@ -1,8 +1,9 @@
 ﻿using System;
 using FluentTimeSpan;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using Polly;
-using ServiceStack.Redis;
+using StackExchange.Redis;
 
 namespace ProductSearchService.API.Caching
 {
@@ -30,16 +31,16 @@ namespace ProductSearchService.API.Caching
                     })
                     .Execute(() =>
                     {
-                        var redisManager = new RedisManagerPool(host: Settings.Host);
-                        RedisClient = redisManager.GetClient();
+                        var redis = ConnectionMultiplexer.Connect(Settings.Host);
+                        Database = redis.GetDatabase();
                     });
         }
 
         private ILogger<RedisCache> Logger { get; }
 
         private IRedisCacheSettings Settings { get; }
-
-        private IRedisClient RedisClient { get; set; }
+        
+        private IDatabase Database { get; set; }
 
         public T Get<T>(string key)
         {
@@ -52,13 +53,13 @@ namespace ProductSearchService.API.Caching
                     {
                         Logger.LogError(exception: ex, message: $"RedisCache: Get key \"{key}\"");
                     })
-                .Execute(() =>
+                .Execute((Func<T>)(() =>
                 {
                     Logger.LogInformation($"RedisCache: Begin get data for key \"{key}\"");
-                    var item = RedisClient.Get<T>(key: key);
+                    var item = GetFromRedis<T>(key);
                     Logger.LogInformation($"RedisCache: End get data for key \"{key}\"");
                     return item;
-                });
+                }));
         }
 
         public void Set<T>(string key, T value, TimeSpan? duration = null)
@@ -74,21 +75,7 @@ namespace ProductSearchService.API.Caching
                     })
                     .Execute(action: () =>
                     {
-                        if (duration.HasValue)
-                        {
-                            RedisClient.Set(
-                                key: key,
-                                value: value,
-                                expiresIn: duration.Value);
-                            Logger.LogInformation(message: $"RedisCache: Cache key \"{key}\" for duration: {duration.Value}");
-                        }
-                        else
-                        {
-                            RedisClient.Set(
-                                key: key,
-                                value: value);
-                            Logger.LogInformation(message: $"RedisCache: Cache key \"{key}\"");
-                        }
+                        SetToRedis(key: key, value: value, duration: duration);
                     });
         }
 
@@ -106,27 +93,41 @@ namespace ProductSearchService.API.Caching
                     .Execute(action: () =>
                     {
                         Logger.LogInformation(message: $"RedisCache: Get data for key \"{key}\" to update");
-                        T item = RedisClient.Get<T>(key: key);
+                        T item = GetFromRedis<T>(key: key);
                         if (item != null)
                         {
-                            action?.Invoke(item);
-                            if (duration.HasValue)
-                            {
-                                RedisClient.Set(
-                                    key: key,
-                                    value: item,
-                                    expiresIn: duration.Value);
-                                Logger.LogInformation(message: $"RedisCache: Set data for key \"{key}\" to update with duration {duration.Value}");
-                            }
-                            else
-                            {
-                                RedisClient.Set(
-                                    key: key,
-                                    value: item);
-                                Logger.LogInformation(message: $"RedisCache: Set data for key \"{key}\" to update");
-                            }
+                            action?.Invoke(obj: item);
+                            SetToRedis(
+                                key: key,
+                                value: item,
+                                duration: duration);
                         }
                     });
+        }
+
+        private T GetFromRedis<T>(string key)
+        {
+            string json = Database.StringGet(key: key);
+            return json == null ? default : JsonConvert.DeserializeObject<T>(value: json);
+        }
+
+        private void SetToRedis<T>(string key, T value, TimeSpan? duration = null)
+        {
+            if (duration.HasValue)
+            {
+                Database.StringSet(
+                    key: key,
+                    value: JsonConvert.SerializeObject(value),
+                    expiry: duration.Value);
+                Logger.LogInformation(message: $"RedisCache: Cache key \"{key}\" for duration: {duration.Value}");
+            }
+            else
+            {
+                Database.StringSet(
+                    key: key,
+                    value: JsonConvert.SerializeObject(value));
+                Logger.LogInformation(message: $"RedisCache: Cache key \"{key}\"");
+            }
         }
     }
 }

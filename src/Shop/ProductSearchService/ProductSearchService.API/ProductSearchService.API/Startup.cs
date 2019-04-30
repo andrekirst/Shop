@@ -3,6 +3,7 @@ using AutoMapper;
 using FluentTimeSpan;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.HealthChecks;
@@ -47,22 +48,14 @@ namespace ProductSearchService.API
                 .AddControllers()
                 .AddNewtonsoftJson();
 
-            //services.AddSwaggerGen(swaggerConfiguration =>
-            //{
-            //    swaggerConfiguration.SwaggerDoc(
-            //        name: "ProductSearchService.API - v1",
-            //        info: new Info
-            //        {
-            //            Title = "ProductSearchService.API",
-            //            Version = "v1",
-            //            Contact = new Contact
-            //            {
-            //                Email = "github@andrekirst.de",
-            //                Name = "André Kirst",
-            //                Url = "https://github.com/andrekirst/Shop"
-            //            }
-            //        });
-            //});
+            services.AddApiVersioning(versioningSetup =>
+            {
+                versioningSetup.AssumeDefaultVersionWhenUnspecified = true;
+                versioningSetup.DefaultApiVersion = new ApiVersion(majorVersion: 1, minorVersion: 0);
+                versioningSetup.RegisterMiddleware = true;
+                versioningSetup.ReportApiVersions = true;
+                versioningSetup.UseApiBehavior = true;
+            });
 
             services.AddSignalR(signalrConfiguration =>
             {
@@ -112,14 +105,6 @@ namespace ProductSearchService.API
             {
                 app.UseHsts();
             }
-
-            //app.UseSwagger();
-            //app.UseSwaggerUI(swaggerUiConfiguration =>
-            //{
-            //    swaggerUiConfiguration.SwaggerEndpoint(
-            //        url: "/swagger/v1/swagger.json",
-            //        name: "ProductSearchService.API - v1");
-            //});
 
             SetupAutoMapper();
 

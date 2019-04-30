@@ -11,5 +11,9 @@
         bool EnableHttpPipelining { get; }
         
         bool PrettyJson { get; }
+        
+        int NumberOfShards { get; }
+        
+        int NumberOfReplicas { get; }
     }
 }

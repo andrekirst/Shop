@@ -13,8 +13,10 @@ using System.Threading.Tasks;
 
 namespace ProductSearchService.API.Controllers
 {
-    [Route(template: "api")]
+    [Route(template: "api/v{version:apiVersion}")]
     [ApiController]
+    [ApiVersion("1.0")]
+    [ApiExplorerSettings(GroupName = "Products")]
     public class ProductController : ControllerBase
     {
         public ProductController(
@@ -34,7 +36,7 @@ namespace ProductSearchService.API.Controllers
         private IProductsRepository Repository { get; }
 
         private IMessagePublisher MessagePublisher { get; }
-        
+
         private ICache Cache { get; }
 
         [HttpGet]
@@ -47,24 +49,26 @@ namespace ProductSearchService.API.Controllers
             try
             {
                 var product = Cache.Get<Product>(key: cacheKey);
-                bool isCached = product != null;
-                
-                if (!isCached)
+                bool isProductCached = product != null;
+
+                if (isProductCached)
                 {
-                    product = await Repository.GetProductByProductnumber(
-                        productnumber: productnumber,
-                        cancellationToken: cancellationToken);
+                    return Ok(value: product);
                 }
+
+                product = await Repository.GetProductByProductnumber(
+                    productnumber: productnumber,
+                    cancellationToken: cancellationToken);
 
                 if (product != null)
                 {
                     _ = Task.Factory.StartNew(() => QueueProductSelectedEvent(product: product));
-                    if (!isCached)
+                    if (!isProductCached)
                     {
                         _ = Task.Factory.StartNew(() => Cache.Set(
                             key: cacheKey,
                             value: product,
-                            duration: 24.Hours())); 
+                            duration: 24.Hours()));
                     }
 
                     return Ok(value: product);
@@ -89,26 +93,29 @@ namespace ProductSearchService.API.Controllers
             try
             {
                 var products = Cache.Get<List<Product>>(key: cacheKey);
-                bool isCached = products != null;
-                if (!isCached)
+                bool areProductsCached = products != null;
+
+                if (areProductsCached)
                 {
-                    products = await Repository.Search(
-                        filter: filter,
-                        cancellationToken: cancellationToken);
+                    return Ok(value: products);
                 }
+
+                products = await Repository.Search(
+                    filter: filter,
+                    cancellationToken: cancellationToken);
 
                 _ = Task.Factory.StartNew(() => QueueProductsSearchedEvent(products: products, filter: filter));
 
                 if (products != null && products.Any())
                 {
-                    if (!isCached)
+                    if (!areProductsCached)
                     {
                         Cache.Set(
                            key: cacheKey,
                            value: products,
                            duration: 1.Minutes());
                     }
-                    
+
                     return Ok(value: products);
                 }
 

@@ -15,8 +15,7 @@ namespace ProductSearchService.API.Repositories
 {
     public class ProductsRepository : IProductsRepository
     {
-        private const string Index = "productssearch";
-        private const string Type = "products";
+        private const string Index = "productsearch";
 
         public ProductsRepository(
             ILogger<ProductsRepository> logger,
@@ -25,6 +24,54 @@ namespace ProductSearchService.API.Repositories
             Logger = logger;
             ElasticClientSettings = elasticClientSettings;
             InitializeElasticClient();
+            CreateIndexIfNotExists();
+        }
+
+        private void CreateIndexIfNotExists()
+        {
+            var response = ElasticClient.IndicesExists<StringResponse>(index: Index);
+            if (response.HttpStatusCode == 404)
+            {
+                var createIndexResponse = ElasticClient.IndicesCreate<StringResponse>(
+                    index: Index,
+                    body: Serializable(new
+                    {
+                        settings = new
+                        {
+                            index = new
+                            {
+                                number_of_shards = ElasticClientSettings.NumberOfShards,
+                                number_of_replicas = ElasticClientSettings.NumberOfReplicas
+                            }
+                        }
+                    }));
+
+                if (createIndexResponse.Success &&
+                    createIndexResponse.HttpStatusCode == 200)
+                {
+                    var putMappingsResponse = ElasticClient.IndicesPutMapping<StringResponse>(
+                        index: Index,
+                        body: Serializable(new
+                        {
+                            properties = new
+                            {
+                                Productnumber = new
+                                {
+                                    type = "text"
+                                },
+                                Name = new
+                                {
+                                    type = "text"
+                                },
+                                Description = new
+                                {
+                                    type = "text"
+                                }
+                            }
+                        }));
+                }
+            }
+
         }
 
         private void InitializeElasticClient()
@@ -54,10 +101,19 @@ namespace ProductSearchService.API.Repositories
                 {
                     multi_match = new
                     {
-                        fields = new[] { $"{nameof(Product.Name)}^2", nameof(Product.Description) },
+                        fields = new[]
+                        {
+                            $"{nameof(Product.Productnumber)}^3",
+                            $"{nameof(Product.Name)}^2",
+                            nameof(Product.Description)
+                        },
                         query = filter,
                         fuzziness = 10
                     }
+                },
+                sort = new
+                {
+                    _score = new { order = "desc" }
                 }
             });
 
@@ -86,7 +142,7 @@ namespace ProductSearchService.API.Repositories
 
         public async Task<Product> GetProductByProductnumber(string productnumber, CancellationToken cancellationToken)
         {
-            Logger.LogInformation(message: $"ProductsRepository: Call GetAsync to index \"{Index}\", type \"{Type}\" and id \"{productnumber}\"");
+            Logger.LogInformation(message: $"ProductsRepository: Call GetAsync to index \"{Index}\" and id \"{productnumber}\"");
             var response = await ElasticClient.GetAsync<StringResponse>(
                     index: Index,
                     id: productnumber,

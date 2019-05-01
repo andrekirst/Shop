@@ -79,7 +79,6 @@ namespace ProductSearchService.API.Messaging
 
                     _connection = factory.CreateConnection();
                     _channel = _connection.CreateModel();
-                    _channel.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
                     _channel.ExchangeDeclare(
                         exchange: Exchange,
                         type: ExchangeType.Topic,
@@ -96,11 +95,11 @@ namespace ProductSearchService.API.Messaging
                         routingKey: RoutingKey,
                         arguments: arguments);
                     _consumer = new AsyncEventingBasicConsumer(model: _channel);
-
+                    
                     _consumer.Received += Consumer_Received;
                     _consumerTag = _channel.BasicConsume(
                         queue: Queue,
-                        autoAck: true,
+                        autoAck: false,
                         consumer: _consumer);
                 });
         }
@@ -116,9 +115,13 @@ namespace ProductSearchService.API.Messaging
             Logger.LogInformation(message: $"MessageHandler => Received => Exchange: \"{@event.Exchange}\", RoutingKey: \"{@event.RoutingKey}\"");
             try
             {
-                if(!await HandleEvent(@event: @event))
+                if(await HandleEvent(@event: @event))
                 {
-                    throw new Exception("Do not ack!");
+                    _channel.BasicAck(deliveryTag: @event.DeliveryTag, multiple: true);
+                }
+                else
+                {
+                    _channel.BasicReject(@event.DeliveryTag, true);
                 }
             }
             catch (Exception)

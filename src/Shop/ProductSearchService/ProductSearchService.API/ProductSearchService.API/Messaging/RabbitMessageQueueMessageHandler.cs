@@ -96,7 +96,6 @@ namespace ProductSearchService.API.Messaging
                         routingKey: RoutingKey,
                         arguments: arguments);
                     _consumer = new AsyncEventingBasicConsumer(model: _channel);
-                    
                     _consumer.Received += Consumer_Received;
                     _consumerTag = _channel.BasicConsume(
                         queue: Queue,
@@ -107,6 +106,7 @@ namespace ProductSearchService.API.Messaging
 
         private void Channel_BasicAcks(object sender, BasicAckEventArgs e)
         {
+            Logger.LogInformation(message: $"Channel_BasicAcks: DeliveryTag: {e.DeliveryTag}, Multiple: {e.Multiple}");
         }
 
         public void Stop()

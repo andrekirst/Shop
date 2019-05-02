@@ -115,17 +115,21 @@ namespace ProductSearchService.API.Messaging
             Logger.LogInformation(message: $"MessageHandler => Received => Exchange: \"{@event.Exchange}\", RoutingKey: \"{@event.RoutingKey}\"");
             try
             {
-                if(await HandleEvent(@event: @event))
+                var taskHandleEvent = HandleEvent(@event: @event);
+                await Task.WhenAll(taskHandleEvent);
+                var taskHandled = await taskHandleEvent;
+                if(taskHandled)
                 {
                     _channel.BasicAck(deliveryTag: @event.DeliveryTag, multiple: true);
                 }
                 else
                 {
-                    _channel.BasicReject(@event.DeliveryTag, true);
+                    _channel.BasicNack(deliveryTag: @event.DeliveryTag, multiple: true, requeue: true);
                 }
             }
-            catch (Exception)
+            catch (Exception exception)
             {
+                Logger.LogError(exception: exception, message: exception.Message);
                 throw;
             }
         }

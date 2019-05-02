@@ -36,15 +36,15 @@ namespace ProductSearchService.API.Messaging
         }
 
         public IRabbitMessageQueueSettings Settings { get; }
-        
+
         private string Exchange { get; }
 
         private string Queue { get; }
 
         private string RoutingKey { get; }
-        
+
         private IMessageSerializer MessageSerializer { get; }
-        
+
         private ILogger<RabbitMessageQueueMessageHandler<TCallback>> Logger { get; }
 
         public void Start(TCallback callback)
@@ -72,14 +72,14 @@ namespace ProductSearchService.API.Messaging
                         DispatchConsumersAsync = true
                     };
 
+                    _connection = factory.CreateConnection();
+
                     var arguments = new Dictionary<string, object>()
                     {
                         { MessageType, Queue }
                     };
 
-                    _connection = factory.CreateConnection();
                     _channel = _connection.CreateModel();
-                    _channel.BasicAcks += Channel_BasicAcks;
                     _channel.ExchangeDeclare(
                         exchange: Exchange,
                         type: ExchangeType.Topic,
@@ -104,11 +104,6 @@ namespace ProductSearchService.API.Messaging
                 });
         }
 
-        private void Channel_BasicAcks(object sender, BasicAckEventArgs e)
-        {
-            Logger.LogInformation(message: $"Channel_BasicAcks: DeliveryTag: {e.DeliveryTag}, Multiple: {e.Multiple}");
-        }
-
         public void Stop()
         {
             _channel.Close(replyCode: 200, replyText: "Goodbye");
@@ -120,16 +115,13 @@ namespace ProductSearchService.API.Messaging
             Logger.LogInformation(message: $"MessageHandler => Received => Exchange: \"{@event.Exchange}\", RoutingKey: \"{@event.RoutingKey}\"");
             try
             {
-                var taskHandleEvent = HandleEvent(@event: @event);
-                await Task.WhenAll(taskHandleEvent);
-                var taskHandled = await taskHandleEvent;
-                if(taskHandled)
+                if (await HandleEvent(@event: @event))
                 {
-                    _channel.BasicAck(deliveryTag: @event.DeliveryTag, multiple: false);
+                    _channel.BasicAck(deliveryTag: @event.DeliveryTag, multiple: true);
                 }
                 else
                 {
-                    _channel.BasicNack(deliveryTag: @event.DeliveryTag, multiple: false, requeue: true);
+                    _channel.BasicNack(deliveryTag: @event.DeliveryTag, multiple: true, requeue: true);
                 }
             }
             catch (Exception exception)

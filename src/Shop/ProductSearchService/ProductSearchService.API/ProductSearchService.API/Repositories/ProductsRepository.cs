@@ -179,7 +179,9 @@ namespace ProductSearchService.API.Repositories
                     Name = name,
                     Description = description
                 }));
-            return response.Success;
+            return
+                response.Success &&
+                response.HttpStatusCode == 201;
         }
 
         public async Task<bool> UpdateProductName(string productnumber, string name)

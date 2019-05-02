@@ -90,7 +90,6 @@ namespace ProductSearchService.API.EventHandlers
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            Start();
             while (!stoppingToken.IsCancellationRequested)
             {
                 Logger.LogDebug($"Worker running at: {DateTimeOffset.Now}");

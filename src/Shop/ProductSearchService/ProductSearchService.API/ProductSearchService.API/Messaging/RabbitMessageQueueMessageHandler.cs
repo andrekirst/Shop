@@ -79,6 +79,7 @@ namespace ProductSearchService.API.Messaging
 
                     _connection = factory.CreateConnection();
                     _channel = _connection.CreateModel();
+                    _channel.BasicAcks += Channel_BasicAcks;
                     _channel.ExchangeDeclare(
                         exchange: Exchange,
                         type: ExchangeType.Topic,
@@ -104,6 +105,10 @@ namespace ProductSearchService.API.Messaging
                 });
         }
 
+        private void Channel_BasicAcks(object sender, BasicAckEventArgs e)
+        {
+        }
+
         public void Stop()
         {
             _channel.Close(replyCode: 200, replyText: "Goodbye");
@@ -120,11 +125,11 @@ namespace ProductSearchService.API.Messaging
                 var taskHandled = await taskHandleEvent;
                 if(taskHandled)
                 {
-                    _channel.BasicAck(deliveryTag: @event.DeliveryTag, multiple: true);
+                    _channel.BasicAck(deliveryTag: @event.DeliveryTag, multiple: false);
                 }
                 else
                 {
-                    _channel.BasicNack(deliveryTag: @event.DeliveryTag, multiple: true, requeue: true);
+                    _channel.BasicNack(deliveryTag: @event.DeliveryTag, multiple: false, requeue: true);
                 }
             }
             catch (Exception exception)

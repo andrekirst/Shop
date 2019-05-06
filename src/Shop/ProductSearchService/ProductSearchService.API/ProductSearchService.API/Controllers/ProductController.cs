@@ -62,13 +62,13 @@ namespace ProductSearchService.API.Controllers
 
                 if (product != null)
                 {
-                    _ = Task.Factory.StartNew(() => QueueProductSelectedEvent(product: product));
+                    await QueueProductSelectedEvent(product: product);
                     if (!isProductCached)
                     {
-                        _ = Task.Factory.StartNew(() => Cache.Set(
+                        Cache.Set(
                             key: cacheKey,
                             value: product,
-                            duration: 24.Hours()));
+                            duration: 24.Hours());
                     }
 
                     return Ok(value: product);
@@ -104,7 +104,7 @@ namespace ProductSearchService.API.Controllers
                     filter: filter,
                     cancellationToken: cancellationToken);
 
-                _ = Task.Factory.StartNew(() => QueueProductsSearchedEvent(products: products, filter: filter));
+                await QueueProductsSearchedEvent(products: products, filter: filter);
 
                 if (products != null && products.Any())
                 {
@@ -133,10 +133,10 @@ namespace ProductSearchService.API.Controllers
         private Task QueueProductsSearchedEvent(List<Product> products, string filter) =>
             MessagePublisher.SendEventAsync(
                 @event: new ProductsSearchedEvent(
-                filter: filter,
-                productsFound: products != null && products.Any(),
-                numberOfProductsFound: products?.Count ?? 0),
-                messageType: "ProductsSearchedEvent");
+                    filter: filter,
+                    productsFound: products != null && products.Any(),
+                    numberOfProductsFound: products?.Count ?? 0),
+                messageType: "Event:ProductsSearchedEvent");
 
         private Task QueueProductSelectedEvent(Product product) =>
             MessagePublisher.SendEventAsync(
@@ -144,6 +144,6 @@ namespace ProductSearchService.API.Controllers
                     productnumber: product.Productnumber,
                     name: product.Name,
                     description: product.Description),
-                messageType: "ProductSelectedEvent");
+                messageType: "Event:ProductSelectedEvent");
     }
 }

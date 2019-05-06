@@ -48,6 +48,8 @@ namespace ProductSearchService.API
                 .AddControllers()
                 .AddNewtonsoftJson();
 
+            services.AddMemoryCache();
+
             services.AddApiVersioning(versioningSetup =>
             {
                 versioningSetup.AssumeDefaultVersionWhenUnspecified = true;
@@ -83,9 +85,18 @@ namespace ProductSearchService.API
                 messageSerializer: serviceprovider.GetService<IMessageSerializer>(),
                 logger: serviceprovider.GetService<ILogger<RabbitMessageQueueMessageHandler<ProductNameChangedEventHandler>>>()));
 
+            services.AddSingleton<IMessageHandler<ProductsCreatedEventHandler>>(serviceprovider => new RabbitMessageQueueMessageHandler<ProductsCreatedEventHandler>(
+                settings: serviceprovider.GetService<IRabbitMessageQueueSettings>(),
+                exchange: "Product",
+                queue: "Product:Event:ProductsCreatedEvent",
+                routingKey: "Event:ProductsCreatedEvent",
+                messageSerializer: serviceprovider.GetService<IMessageSerializer>(),
+                logger: serviceprovider.GetService<ILogger<RabbitMessageQueueMessageHandler<ProductsCreatedEventHandler>>>()));
+
             services
                 .AddHostedService<ProductNameChangedEventHandler>()
-                .AddHostedService<ProductCreatedEventHandler>();
+                .AddHostedService<ProductCreatedEventHandler>()
+                .AddHostedService<ProductsCreatedEventHandler>();
 
             services.AddHealthChecks(checks: checks =>
             {

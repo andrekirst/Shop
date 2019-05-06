@@ -8,6 +8,7 @@ using FluentTimeSpan;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using ProductSearchService.API.Events;
 using ProductSearchService.API.Model;
 using static Elasticsearch.Net.PostData;
 
@@ -173,7 +174,7 @@ namespace ProductSearchService.API.Repositories
             StringResponse response = await ElasticClient.IndexAsync<StringResponse>(
                 index: Index,
                 id: productnumber,
-                body: PostData.Serializable(o: new
+                body: Serializable(o: new
                 {
                     Productnumber = productnumber,
                     Name = name,
@@ -196,6 +197,20 @@ namespace ProductSearchService.API.Repositories
                         Name = name
                     }
                 }));
+            return response.Success;
+        }
+
+        public async Task<bool> CreateProducts(List<CreateProductsItem> products)
+        {
+            int numberOfProducts = products.Count;
+
+            var items = new object[numberOfProducts * 2];
+            for (int i = 0; i < numberOfProducts; i++)
+            {
+                items[i * 2] = new { index = new { _index = Index, _id = products[i].Productnumber } };
+                items[(i * 2) + 1] = products[i];
+            }
+            var response = await ElasticClient.BulkAsync<StringResponse>(MultiJson(items));
             return response.Success;
         }
     }

@@ -1,5 +1,6 @@
 ﻿using System;
 using FluentTimeSpan;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Polly;
@@ -11,10 +12,12 @@ namespace ProductSearchService.API.Caching
     {
         public RedisCache(
             ILogger<RedisCache> logger,
-            IRedisCacheSettings settings)
+            IRedisCacheSettings settings,
+            IMemoryCache memoryCache)
         {
             Logger = logger;
             Settings = settings;
+            MemoryCache = memoryCache;
             InitializeRedis();
         }
 
@@ -40,11 +43,12 @@ namespace ProductSearchService.API.Caching
 
         private IRedisCacheSettings Settings { get; }
         
+        private IMemoryCache MemoryCache { get; }
+        
         private IDatabase Database { get; set; }
 
-        public T Get<T>(string key)
-        {
-            return Policy
+        public T Get<T>(string key) =>
+            Policy
                 .Handle<Exception>()
                 .WaitAndRetry(
                     retryCount: 3,
@@ -53,17 +57,16 @@ namespace ProductSearchService.API.Caching
                     {
                         Logger.LogError(exception: ex, message: $"RedisCache: Get key \"{key}\"");
                     })
-                .Execute((Func<T>)(() =>
+                .Execute(() =>
                 {
                     Logger.LogInformation($"RedisCache: Begin get data for key \"{key}\"");
-                    var item = GetFromRedis<T>(key);
+                    var memoryCacheItem = MemoryCache.Get<T>(key);
+                    var item = memoryCacheItem ?? GetFromRedis<T>(key);
                     Logger.LogInformation($"RedisCache: End get data for key \"{key}\"");
                     return item;
-                }));
-        }
+                });
 
-        public void Set<T>(string key, T value, TimeSpan? duration = null)
-        {
+        public void Set<T>(string key, T value, TimeSpan? duration = null) =>
             Policy
                 .Handle<Exception>()
                 .WaitAndRetry(
@@ -75,12 +78,11 @@ namespace ProductSearchService.API.Caching
                     })
                     .Execute(action: () =>
                     {
+                        MemoryCache.Set(key: key, value: value, absoluteExpirationRelativeToNow: 30.Seconds());
                         SetToRedis(key: key, value: value, duration: duration);
                     });
-        }
 
-        public void Update<T>(string key, Action<T> action, TimeSpan? duration = null)
-        {
+        public void Update<T>(string key, Action<T> action, TimeSpan? duration = null) =>
             Policy
                 .Handle<Exception>()
                 .WaitAndRetry(
@@ -97,13 +99,13 @@ namespace ProductSearchService.API.Caching
                         if (item != null)
                         {
                             action?.Invoke(obj: item);
+                            MemoryCache.Set(key: key, value: item, absoluteExpirationRelativeToNow: 30.Seconds());
                             SetToRedis(
                                 key: key,
                                 value: item,
                                 duration: duration);
                         }
                     });
-        }
 
         private T GetFromRedis<T>(string key)
         {

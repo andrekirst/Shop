@@ -15,6 +15,8 @@ namespace ProductSearchService.API.EventHandlers
 {
     public class ProductCreatedEventHandler : BackgroundService, IMessageHandlerCallback
     {
+        private const string MessageType = "Event:ProductCreatedEvent";
+
         public ProductCreatedEventHandler(
             IMessageHandler<ProductCreatedEventHandler> messageHandler,
             IProductsRepository repository,
@@ -45,10 +47,10 @@ namespace ProductSearchService.API.EventHandlers
 
         public Task<bool> HandleMessageAsync(string messageType, string message)
         {
-            return messageType == "Event:ProductCreatedEvent"
+            return messageType == MessageType
                 ? HandleAsync(@event: MessageSerializer.Deserialize<ProductCreatedEvent>(value: message))
                 : throw new WrongMessageTypeGivenException(
-                    expectedMessageType: "Event:ProductCreatedEvent",
+                    expectedMessageType: MessageType,
                     currentMessageType: messageType);
         }
 

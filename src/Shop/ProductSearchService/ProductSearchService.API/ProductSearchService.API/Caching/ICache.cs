@@ -6,7 +6,8 @@ namespace ProductSearchService.API.Caching
     {
         void Set<T>(string key, T value, TimeSpan? duration = null);
 
-        T Get<T>(string key);
+        T Get<T>(string key)
+            where T : class;
 
         void Update<T>(string key, Action<T> action, TimeSpan? duration = null);
     }

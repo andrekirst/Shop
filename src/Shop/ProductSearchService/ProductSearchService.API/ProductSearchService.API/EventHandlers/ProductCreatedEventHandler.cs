@@ -81,20 +81,20 @@ namespace ProductSearchService.API.EventHandlers
         public override Task StartAsync(CancellationToken cancellationToken)
         {
             Start();
-            return base.StartAsync(cancellationToken);
+            return base.StartAsync(cancellationToken: cancellationToken);
         }
 
         public override Task StopAsync(CancellationToken cancellationToken)
         {
             Stop();
-            return base.StopAsync(cancellationToken);
+            return base.StopAsync(cancellationToken: cancellationToken);
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                Logger.LogDebug($"Worker running at: {DateTimeOffset.Now}");
+                Logger.LogDebug(message: $"Worker {nameof(ProductCreatedEventHandler)} running at: {DateTimeOffset.Now}");
                 await Task.Delay(delay: 1.Minutes(), cancellationToken: stoppingToken);
             }
         }

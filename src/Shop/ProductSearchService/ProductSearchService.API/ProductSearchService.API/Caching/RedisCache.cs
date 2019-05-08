@@ -32,9 +32,9 @@ namespace ProductSearchService.API.Caching
                     {
                         Logger.LogError(exception: ex, message: $"RedisCache: Redis initialization failed to Host {Settings.Host}");
                     })
-                    .Execute(() =>
+                    .Execute(action: () =>
                     {
-                        var redis = ConnectionMultiplexer.Connect(Settings.Host);
+                        var redis = ConnectionMultiplexer.Connect(configuration: Settings.Host);
                         Database = redis.GetDatabase();
                     });
         }
@@ -47,8 +47,9 @@ namespace ProductSearchService.API.Caching
         
         private IDatabase Database { get; set; }
 
-        public T Get<T>(string key) =>
-            Policy
+        public T Get<T>(string key)
+            where T : class
+            => Policy
                 .Handle<Exception>()
                 .WaitAndRetry(
                     retryCount: 3,
@@ -57,12 +58,12 @@ namespace ProductSearchService.API.Caching
                     {
                         Logger.LogError(exception: ex, message: $"RedisCache: Get key \"{key}\"");
                     })
-                .Execute(() =>
+                .Execute(action: () =>
                 {
-                    Logger.LogInformation($"RedisCache: Begin get data for key \"{key}\"");
-                    var memoryCacheItem = MemoryCache.Get<T>(key);
-                    var item = memoryCacheItem ?? GetFromRedis<T>(key);
-                    Logger.LogInformation($"RedisCache: End get data for key \"{key}\"");
+                    Logger.LogInformation(message: $"RedisCache: Begin get data for key \"{key}\"");
+                    var memoryCacheItem = MemoryCache.Get<T>(key: key);
+                    var item = memoryCacheItem ?? GetFromRedis<T>(key: key);
+                    Logger.LogInformation(message: $"RedisCache: End get data for key \"{key}\"");
                     return item;
                 });
 
@@ -119,7 +120,7 @@ namespace ProductSearchService.API.Caching
             {
                 Database.StringSet(
                     key: key,
-                    value: JsonConvert.SerializeObject(value),
+                    value: JsonConvert.SerializeObject(value: value),
                     expiry: duration.Value);
                 Logger.LogInformation(message: $"RedisCache: Cache key \"{key}\" for duration: {duration.Value}");
             }
@@ -127,7 +128,7 @@ namespace ProductSearchService.API.Caching
             {
                 Database.StringSet(
                     key: key,
-                    value: JsonConvert.SerializeObject(value));
+                    value: JsonConvert.SerializeObject(value: value));
                 Logger.LogInformation(message: $"RedisCache: Cache key \"{key}\"");
             }
         }

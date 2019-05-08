@@ -15,7 +15,7 @@ namespace ProductSearchService.API.Controllers
 {
     [Route(template: "api/v{version:apiVersion}")]
     [ApiController]
-    [ApiVersion("1.0")]
+    [ApiVersion(version: "1.0")]
     [ApiExplorerSettings(GroupName = "Products")]
     public class ProductController : ControllerBase
     {
@@ -63,13 +63,11 @@ namespace ProductSearchService.API.Controllers
                 if (product != null)
                 {
                     await QueueProductSelectedEvent(product: product);
-                    if (!isProductCached)
-                    {
-                        Cache.Set(
-                            key: cacheKey,
-                            value: product,
-                            duration: 24.Hours());
-                    }
+
+                    Cache.Set(
+                        key: cacheKey,
+                        value: product,
+                        duration: 24.Hours());
 
                     return Ok(value: product);
                 }
@@ -108,18 +106,15 @@ namespace ProductSearchService.API.Controllers
 
                 if (products != null && products.Any())
                 {
-                    if (!areProductsCached)
-                    {
-                        Cache.Set(
-                           key: cacheKey,
-                           value: products,
-                           duration: 1.Minutes());
-                    }
+                    Cache.Set(
+                       key: cacheKey,
+                       value: products,
+                       duration: 1.Minutes());
 
                     return Ok(value: products);
                 }
 
-                return NotFound(null);
+                return NotFound(value: null);
             }
             catch (TaskCanceledException exception)
             {

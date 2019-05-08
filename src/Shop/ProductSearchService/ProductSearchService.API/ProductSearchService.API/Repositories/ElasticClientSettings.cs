@@ -12,7 +12,7 @@ namespace ProductSearchService.API.Repositories
         public IConfiguration Configuration { get; }
 
         private IConfigurationSection ElasticSection =>
-            Configuration.GetSection("Elastic");
+            Configuration.GetSection(key: "Elastic");
 
         public string Uri =>
             ElasticSection

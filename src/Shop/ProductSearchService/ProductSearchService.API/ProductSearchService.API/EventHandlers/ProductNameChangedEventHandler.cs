@@ -61,13 +61,13 @@ namespace ProductSearchService.API.EventHandlers
         public override Task StartAsync(CancellationToken cancellationToken)
         {
             Start();
-            return base.StartAsync(cancellationToken);
+            return base.StartAsync(cancellationToken: cancellationToken);
         }
 
         public override Task StopAsync(CancellationToken cancellationToken)
         {
             Stop();
-            return base.StopAsync(cancellationToken);
+            return base.StopAsync(cancellationToken: cancellationToken);
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -103,6 +103,6 @@ namespace ProductSearchService.API.EventHandlers
         }
 
         private void PublishProductNameUpdated(ProductNameChangedEvent @event) =>
-            _ = Task.Factory.StartNew(() => ProductHubContext.Clients.All.SendAsync($"UpdateProductName[Productnumber={@event.Productnumber}]", @event.Name));
+            _ = Task.Factory.StartNew(function: () => ProductHubContext.Clients.All.SendAsync(method: $"UpdateProductName[Productnumber={@event.Productnumber}]", arg1: @event.Name));
     }
 }

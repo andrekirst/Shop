@@ -50,7 +50,7 @@ namespace ProductSearchService.API
 
             services.AddMemoryCache();
 
-            services.AddApiVersioning(versioningSetup =>
+            services.AddApiVersioning(setupAction: versioningSetup =>
             {
                 versioningSetup.AssumeDefaultVersionWhenUnspecified = true;
                 versioningSetup.DefaultApiVersion = new ApiVersion(majorVersion: 1, minorVersion: 0);
@@ -59,7 +59,7 @@ namespace ProductSearchService.API
                 versioningSetup.UseApiBehavior = true;
             });
 
-            services.AddSignalR(signalrConfiguration =>
+            services.AddSignalR(configure: signalrConfiguration =>
             {
                 signalrConfiguration.EnableDetailedErrors = true;
             });
@@ -69,7 +69,7 @@ namespace ProductSearchService.API
             services.AddSingleton<ICache, RedisCache>();
             services.AddSingleton<IRedisCacheSettings, RedisCacheSettings>();
 
-            services.AddSingleton<IMessageHandler<ProductCreatedEventHandler>>(serviceprovider => new RabbitMessageQueueMessageHandler<ProductCreatedEventHandler>(
+            services.AddSingleton<IMessageHandler<ProductCreatedEventHandler>>(implementationFactory: serviceprovider => new RabbitMessageQueueMessageHandler<ProductCreatedEventHandler>(
                 settings: serviceprovider.GetService<IRabbitMessageQueueSettings>(),
                 exchange: "Product",
                 queue: "Product:Event:ProductCreatedEvent",
@@ -77,7 +77,7 @@ namespace ProductSearchService.API
                 messageSerializer: serviceprovider.GetService<IMessageSerializer>(),
                 logger: serviceprovider.GetService<ILogger<RabbitMessageQueueMessageHandler<ProductCreatedEventHandler>>>()));
 
-            services.AddSingleton<IMessageHandler<ProductNameChangedEventHandler>>(serviceprovider => new RabbitMessageQueueMessageHandler<ProductNameChangedEventHandler>(
+            services.AddSingleton<IMessageHandler<ProductNameChangedEventHandler>>(implementationFactory: serviceprovider => new RabbitMessageQueueMessageHandler<ProductNameChangedEventHandler>(
                 settings: serviceprovider.GetService<IRabbitMessageQueueSettings>(),
                 exchange: "Product",
                 queue: "Product:Event:ProductNameChangedEvent",
@@ -85,7 +85,7 @@ namespace ProductSearchService.API
                 messageSerializer: serviceprovider.GetService<IMessageSerializer>(),
                 logger: serviceprovider.GetService<ILogger<RabbitMessageQueueMessageHandler<ProductNameChangedEventHandler>>>()));
 
-            services.AddSingleton<IMessageHandler<ProductsCreatedEventHandler>>(serviceprovider => new RabbitMessageQueueMessageHandler<ProductsCreatedEventHandler>(
+            services.AddSingleton<IMessageHandler<ProductsCreatedEventHandler>>(implementationFactory: serviceprovider => new RabbitMessageQueueMessageHandler<ProductsCreatedEventHandler>(
                 settings: serviceprovider.GetService<IRabbitMessageQueueSettings>(),
                 exchange: "Product",
                 queue: "Product:Event:ProductsCreatedEvent",
@@ -122,16 +122,16 @@ namespace ProductSearchService.API
             //app.UseHttpsRedirection();
             app.UseRouting();
 
-            app.UseEndpoints(endpoints =>
+            app.UseEndpoints(configure: endpoints =>
             {
                 endpoints.MapControllers();
             });
 
             app.UseAuthorization();
 
-            app.UseSignalR(routes =>
+            app.UseSignalR(configure: routes =>
             {
-                routes.MapHub<ProductHub>("/producthub");
+                routes.MapHub<ProductHub>(path: "/producthub");
             });
         }
 

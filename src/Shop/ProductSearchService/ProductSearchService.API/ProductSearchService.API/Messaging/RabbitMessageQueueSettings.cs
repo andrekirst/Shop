@@ -10,13 +10,13 @@ namespace ProductSearchService.API.Messaging
         }
 
         public string HostName =>
-            Configuration.GetSection(key: "RabbitMQ")["Hostname"];
+            Configuration.GetSection(key: "RabbitMQ")[key: "Hostname"];
 
         public string UserName =>
-            Configuration.GetSection(key: "RabbitMQ")["Username"];
+            Configuration.GetSection(key: "RabbitMQ")[key: "Username"];
 
         public string Password =>
-            Configuration.GetSection(key: "RabbitMQ")["Password"];
+            Configuration.GetSection(key: "RabbitMQ")[key: "Password"];
 
         public IConfiguration Configuration { get; }
     }

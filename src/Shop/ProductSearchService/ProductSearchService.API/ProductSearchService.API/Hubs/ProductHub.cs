@@ -13,7 +13,7 @@ namespace ProductSearchService.API.Hubs
 
         public override async Task OnDisconnectedAsync(Exception exception)
         {
-            await base.OnDisconnectedAsync(exception);
+            await base.OnDisconnectedAsync(exception: exception);
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿namespace ProductSearchService.API
+﻿namespace ProductSearchService.API.Logging
 {
     public enum LogState
     {

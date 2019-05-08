@@ -17,7 +17,6 @@ namespace ProductSearchService.API.Messaging
         private IConnection _connection;
         private IModel _channel;
         private AsyncEventingBasicConsumer _consumer;
-        private string _consumerTag;
 
         public RabbitMessageQueueMessageHandler(
             IRabbitMessageQueueSettings settings,
@@ -97,7 +96,7 @@ namespace ProductSearchService.API.Messaging
                         arguments: arguments);
                     _consumer = new AsyncEventingBasicConsumer(model: _channel);
                     _consumer.Received += Consumer_Received;
-                    _consumerTag = _channel.BasicConsume(
+                    _channel.BasicConsume(
                         queue: Queue,
                         autoAck: false,
                         consumer: _consumer);

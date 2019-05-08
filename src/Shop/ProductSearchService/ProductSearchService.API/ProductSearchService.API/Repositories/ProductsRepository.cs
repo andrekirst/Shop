@@ -35,7 +35,7 @@ namespace ProductSearchService.API.Repositories
             {
                 var createIndexResponse = ElasticClient.IndicesCreate<StringResponse>(
                     index: Index,
-                    body: Serializable(new
+                    body: Serializable(o: new
                     {
                         settings = new
                         {
@@ -50,9 +50,9 @@ namespace ProductSearchService.API.Repositories
                 if (createIndexResponse.Success &&
                     createIndexResponse.HttpStatusCode == 200)
                 {
-                    var putMappingsResponse = ElasticClient.IndicesPutMapping<StringResponse>(
+                    ElasticClient.IndicesPutMapping<StringResponse>(
                         index: Index,
-                        body: Serializable(new
+                        body: Serializable(o: new
                         {
                             properties = new
                             {
@@ -118,7 +118,7 @@ namespace ProductSearchService.API.Repositories
                 }
             });
 
-            Logger.LogDebug(message: $"QueryBody: \"{JsonConvert.SerializeObject(queryBody)}\"");
+            Logger.LogDebug(message: $"QueryBody: \"{JsonConvert.SerializeObject(value: queryBody)}\"");
 
             var response = await ElasticClient.SearchAsync<StringResponse>(
                     index: Index,
@@ -190,7 +190,7 @@ namespace ProductSearchService.API.Repositories
             var response = await ElasticClient.UpdateAsync<StringResponse>(
                 index: Index,
                 id: productnumber,
-                body: PostData.Serializable(o: new
+                body: Serializable(o: new
                 {
                     doc = new
                     {
@@ -207,10 +207,10 @@ namespace ProductSearchService.API.Repositories
             var items = new object[numberOfProducts * 2];
             for (int i = 0; i < numberOfProducts; i++)
             {
-                items[i * 2] = new { index = new { _index = Index, _id = products[i].Productnumber } };
-                items[(i * 2) + 1] = products[i];
+                items[i * 2] = new { index = new { _index = Index, _id = products[index: i].Productnumber } };
+                items[(i * 2) + 1] = products[index: i];
             }
-            var response = await ElasticClient.BulkAsync<StringResponse>(MultiJson(items));
+            var response = await ElasticClient.BulkAsync<StringResponse>(body: MultiJson(listOfObjects: items));
             return response.Success;
         }
     }

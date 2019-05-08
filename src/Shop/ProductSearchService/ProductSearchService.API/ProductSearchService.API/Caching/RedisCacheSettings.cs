@@ -10,7 +10,7 @@ namespace ProductSearchService.API.Caching
         }
 
         public string Host =>
-            Configuration.GetSection("Redis")["Host"] ?? "localhost:6379";
+            Configuration.GetSection(key: "Redis")[key: "Host"] ?? "localhost:6379";
 
         private IConfiguration Configuration { get; }
     }

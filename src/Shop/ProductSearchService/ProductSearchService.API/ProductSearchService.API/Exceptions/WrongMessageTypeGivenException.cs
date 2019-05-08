@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.Serialization;
-using System.Threading.Tasks;
 
 namespace ProductSearchService.API.Exceptions
 {
@@ -26,15 +23,15 @@ namespace ProductSearchService.API.Exceptions
             CurrentMessageType = currentMessageType;
         }
 
-        public WrongMessageTypeGivenException(string message) : base(message)
+        public WrongMessageTypeGivenException(string message) : base(message: message)
         {
         }
 
-        public WrongMessageTypeGivenException(string message, Exception innerException) : base(message, innerException)
+        public WrongMessageTypeGivenException(string message, Exception innerException) : base(message: message, innerException: innerException)
         {
         }
 
-        protected WrongMessageTypeGivenException(SerializationInfo info, StreamingContext context) : base(info, context)
+        protected WrongMessageTypeGivenException(SerializationInfo info, StreamingContext context) : base(info: info, context: context)
         {
         }
         

@@ -1,8 +1,11 @@
 FROM mcr.microsoft.com/dotnet/core/aspnet:3.0-stretch-slim AS base
+
+ARG PORT=5100
+
 WORKDIR /app
-EXPOSE 5100
-ENV ASPNETCORE_URLS http://*:5100
-HEALTHCHECK --interval=5s --timeout=10s --retries=3 CMD curl --silent --fail http://localhost:5100/health || exit 1
+EXPOSE ${PORT}
+ENV ASPNETCORE_URLS http://*:${PORT}
+HEALTHCHECK --interval=5s --timeout=10s --retries=3 CMD curl --silent --fail http://localhost:${PORT}/health || exit 1
 ENV WEBSITE_SITE_NAME ProductSearchService.API
 
 FROM mcr.microsoft.com/dotnet/core/sdk:3.0-stretch AS build

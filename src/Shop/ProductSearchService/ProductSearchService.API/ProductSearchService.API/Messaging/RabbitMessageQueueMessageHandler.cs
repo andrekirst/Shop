@@ -34,7 +34,7 @@ namespace ProductSearchService.API.Messaging
             Logger = logger;
         }
 
-        public IRabbitMessageQueueSettings Settings { get; }
+        private IRabbitMessageQueueSettings Settings { get; }
 
         private string Exchange { get; }
 
@@ -79,6 +79,7 @@ namespace ProductSearchService.API.Messaging
                     };
 
                     _channel = _connection.CreateModel();
+                    _channel.BasicQos(prefetchSize: 0, prefetchCount: 10, global: false);
                     _channel.ExchangeDeclare(
                         exchange: Exchange,
                         type: ExchangeType.Topic,

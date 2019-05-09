@@ -21,8 +21,7 @@ namespace ProductSearchService.API.Caching
             InitializeRedis();
         }
 
-        private void InitializeRedis()
-        {
+        private void InitializeRedis() =>
             Policy
                 .Handle<Exception>()
                 .WaitAndRetry(
@@ -32,12 +31,29 @@ namespace ProductSearchService.API.Caching
                     {
                         Logger.LogError(exception: ex, message: $"RedisCache: Redis initialization failed to Host {Settings.Host}");
                     })
-                    .Execute(action: () =>
-                    {
-                        var redis = ConnectionMultiplexer.Connect(configuration: Settings.Host);
-                        Database = redis.GetDatabase();
-                    });
-        }
+                .Execute(action: () =>
+                {
+                    var redis = ConnectionMultiplexer.Connect(
+                        configuration: $"{Settings.Host},name=ProductSearchService.API,connectRetry=1,responseTimeout=10000",
+                        log: Console.Out);
+                    redis.ErrorMessage += Redis_ErrorMessage;
+                    redis.ConnectionFailed += Redis_ConnectionFailed;
+                    redis.ConnectionRestored += Redis_ConnectionRestored;
+                    redis.InternalError += Redis_InternalError;
+                    Database = redis.GetDatabase();
+                });
+
+        private void Redis_InternalError(object sender, InternalErrorEventArgs e)
+            => Logger.LogError(exception: e.Exception, message: e.Origin);
+
+        private void Redis_ConnectionRestored(object sender, ConnectionFailedEventArgs e)
+            => Logger.LogError(exception: e.Exception, message: e.Exception.Message);
+
+        private void Redis_ConnectionFailed(object sender, ConnectionFailedEventArgs e)
+            => Logger.LogError(exception: e.Exception, message: e.Exception.Message);
+
+        private void Redis_ErrorMessage(object sender, RedisErrorEventArgs e)
+            => Logger.LogError(message: e.Message);
 
         private ILogger<RedisCache> Logger { get; }
 
@@ -61,8 +77,7 @@ namespace ProductSearchService.API.Caching
                 .Execute(action: () =>
                 {
                     Logger.LogInformation(message: $"RedisCache: Begin get data for key \"{key}\"");
-                    var memoryCacheItem = MemoryCache.Get<T>(key: key);
-                    var item = memoryCacheItem ?? GetFromRedis<T>(key: key);
+                    var item = MemoryCache.Get<T>(key: key) ?? GetFromRedis<T>(key: key);
                     Logger.LogInformation(message: $"RedisCache: End get data for key \"{key}\"");
                     return item;
                 });

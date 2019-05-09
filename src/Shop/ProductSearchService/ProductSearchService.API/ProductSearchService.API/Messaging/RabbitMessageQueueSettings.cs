@@ -18,6 +18,6 @@ namespace ProductSearchService.API.Messaging
         public string Password =>
             Configuration.GetSection(key: "RabbitMQ")[key: "Password"];
 
-        public IConfiguration Configuration { get; }
+        private IConfiguration Configuration { get; }
     }
 }

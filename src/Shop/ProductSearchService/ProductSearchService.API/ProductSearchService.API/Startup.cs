@@ -15,6 +15,7 @@ using ProductSearchService.API.Commands;
 using ProductSearchService.API.EventHandlers;
 using ProductSearchService.API.Events;
 using ProductSearchService.API.Hubs;
+using ProductSearchService.API.Infrastructure;
 using ProductSearchService.API.Infrastructure.Json;
 using ProductSearchService.API.Messaging;
 using ProductSearchService.API.Model;
@@ -48,6 +49,8 @@ namespace ProductSearchService.API
             services
                 .AddControllers()
                 .AddNewtonsoftJson();
+
+            services.AddTransient<IDateTimeProvider, DefaultDateTimeProvider>();
 
             services.AddTransient<IJsonSerializer, NewtonsoftJsonSerializer>();
 

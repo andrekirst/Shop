@@ -6,12 +6,12 @@ using System.Threading.Tasks;
 using Elasticsearch.Net;
 using FluentTimeSpan;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using ProductSearchService.API.Events;
 using ProductSearchService.API.Infrastructure.Json;
 using ProductSearchService.API.Model;
 using static Elasticsearch.Net.PostData;
+using IDateTimeProvider = ProductSearchService.API.Infrastructure.IDateTimeProvider;
 
 namespace ProductSearchService.API.Repositories
 {
@@ -22,11 +22,13 @@ namespace ProductSearchService.API.Repositories
         public ProductsRepository(
             ILogger<ProductsRepository> logger,
             IElasticClientSettings elasticClientSettings,
-            IJsonSerializer jsonSerializer)
+            IJsonSerializer jsonSerializer,
+            IDateTimeProvider dateTimeProvider)
         {
             Logger = logger;
             ElasticClientSettings = elasticClientSettings;
             JsonSerializer = jsonSerializer;
+            DateTimeProvider = dateTimeProvider;
             InitializeElasticClient();
             CreateIndexIfNotExists();
         }
@@ -70,6 +72,10 @@ namespace ProductSearchService.API.Repositories
                                 Description = new
                                 {
                                     type = "text"
+                                },
+                                ToIndexAddedAt = new
+                                {
+                                    type = "date"
                                 }
                             }
                         }));
@@ -94,6 +100,8 @@ namespace ProductSearchService.API.Repositories
         private IElasticClientSettings ElasticClientSettings { get; }
         
         private IJsonSerializer JsonSerializer { get; }
+        
+        private IDateTimeProvider DateTimeProvider { get; }
 
         private IElasticLowLevelClient ElasticClient { get; set; }
 
@@ -182,7 +190,8 @@ namespace ProductSearchService.API.Repositories
                 {
                     Productnumber = productnumber,
                     Name = name,
-                    Description = description
+                    Description = description,
+                    ToIndexAddedAt = DateTimeProvider.Now
                 }));
             return
                 response.Success &&
@@ -212,7 +221,13 @@ namespace ProductSearchService.API.Repositories
             for (int i = 0; i < numberOfProducts; i++)
             {
                 items[i * 2] = new { index = new { _index = Index, _id = products[index: i].Productnumber } };
-                items[(i * 2) + 1] = products[index: i];
+                items[(i * 2) + 1] = new
+                {
+                    products[index: i].Productnumber,
+                    products[index: i].Name,
+                    products[index: i].Description,
+                    ToIndexAddedAt = DateTimeProvider.Now
+                };
             }
             var response = await ElasticClient.BulkAsync<StringResponse>(body: MultiJson(listOfObjects: items));
             return response.Success;

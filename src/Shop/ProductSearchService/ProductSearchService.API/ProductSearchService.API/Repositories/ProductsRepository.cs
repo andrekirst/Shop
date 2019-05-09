@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using ProductSearchService.API.Events;
+using ProductSearchService.API.Infrastructure.Json;
 using ProductSearchService.API.Model;
 using static Elasticsearch.Net.PostData;
 
@@ -20,10 +21,12 @@ namespace ProductSearchService.API.Repositories
 
         public ProductsRepository(
             ILogger<ProductsRepository> logger,
-            IElasticClientSettings elasticClientSettings)
+            IElasticClientSettings elasticClientSettings,
+            IJsonSerializer jsonSerializer)
         {
             Logger = logger;
             ElasticClientSettings = elasticClientSettings;
+            JsonSerializer = jsonSerializer;
             InitializeElasticClient();
             CreateIndexIfNotExists();
         }
@@ -89,6 +92,8 @@ namespace ProductSearchService.API.Repositories
         private ILogger<ProductsRepository> Logger { get; }
 
         private IElasticClientSettings ElasticClientSettings { get; }
+        
+        private IJsonSerializer JsonSerializer { get; }
 
         private IElasticLowLevelClient ElasticClient { get; set; }
 
@@ -118,7 +123,7 @@ namespace ProductSearchService.API.Repositories
                 }
             });
 
-            Logger.LogDebug(message: $"QueryBody: \"{JsonConvert.SerializeObject(value: queryBody)}\"");
+            Logger.LogDebug(message: $"QueryBody: \"{JsonSerializer.Serialize(value: queryBody)}\"");
 
             var response = await ElasticClient.SearchAsync<StringResponse>(
                     index: Index,
@@ -132,7 +137,6 @@ namespace ProductSearchService.API.Repositories
             }
 
             // TODO Json interface
-
             var result = response.Success
                 ? JObject.Parse(json: response.Body)[propertyName: "hits"][key: "hits"]
                     .Select(selector: s => s[key: "_source"].ToObject<Product>())

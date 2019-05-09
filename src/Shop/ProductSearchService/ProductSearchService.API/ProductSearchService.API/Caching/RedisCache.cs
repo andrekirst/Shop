@@ -4,6 +4,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Polly;
+using ProductSearchService.API.Infrastructure.Json;
 using StackExchange.Redis;
 
 namespace ProductSearchService.API.Caching
@@ -13,11 +14,13 @@ namespace ProductSearchService.API.Caching
         public RedisCache(
             ILogger<RedisCache> logger,
             IRedisCacheSettings settings,
-            IMemoryCache memoryCache)
+            IMemoryCache memoryCache,
+            IJsonSerializer jsonSerializer)
         {
             Logger = logger;
             Settings = settings;
             MemoryCache = memoryCache;
+            JsonSerializer = jsonSerializer;
             InitializeRedis();
         }
 
@@ -61,6 +64,8 @@ namespace ProductSearchService.API.Caching
         
         private IMemoryCache MemoryCache { get; }
         
+        private IJsonSerializer JsonSerializer { get; }
+
         private IDatabase Database { get; set; }
 
         public T Get<T>(string key)
@@ -126,7 +131,7 @@ namespace ProductSearchService.API.Caching
         private T GetFromRedis<T>(string key)
         {
             string json = Database.StringGet(key: key);
-            return json == null ? default : JsonConvert.DeserializeObject<T>(value: json);
+            return json == null ? default : JsonSerializer.Deserialize<T>(json: json);
         }
 
         private void SetToRedis<T>(string key, T value, TimeSpan? duration = null)
@@ -135,7 +140,7 @@ namespace ProductSearchService.API.Caching
             {
                 Database.StringSet(
                     key: key,
-                    value: JsonConvert.SerializeObject(value: value),
+                    value: JsonSerializer.Serialize(value: value),
                     expiry: duration.Value);
                 Logger.LogInformation(message: $"RedisCache: Cache key \"{key}\" for duration: {duration.Value}");
             }
@@ -143,7 +148,7 @@ namespace ProductSearchService.API.Caching
             {
                 Database.StringSet(
                     key: key,
-                    value: JsonConvert.SerializeObject(value: value));
+                    value: JsonSerializer.Serialize(value: value));
                 Logger.LogInformation(message: $"RedisCache: Cache key \"{key}\"");
             }
         }

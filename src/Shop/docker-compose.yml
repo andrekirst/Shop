@@ -83,13 +83,13 @@ services:
 #       - "25:25"
 #       - "4000:80"
   
-  logserver:
-    image: datalust/seq:5
-    container_name: logserver
-    ports:
-      - "5341:80"
-    environment:
-      - ACCEPT_EULA=Y
+  # logserver:
+  #   image: datalust/seq:5
+  #   container_name: logserver
+  #   ports:
+  #     - "5341:80"
+  #   environment:
+  #     - ACCEPT_EULA=Y
 
   productsearchservice.api:
     image: shop/productsearchservice.api:latest

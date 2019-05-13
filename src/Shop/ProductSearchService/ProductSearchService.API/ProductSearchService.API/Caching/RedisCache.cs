@@ -36,7 +36,7 @@ namespace ProductSearchService.API.Caching
                     })
                 .Execute(action: () =>
                 {
-                    var redis = ConnectionMultiplexer.Connect(
+                    ConnectionMultiplexer redis = ConnectionMultiplexer.Connect(
                         configuration: $"{Settings.Host},name=ProductSearchService.API,connectRetry=1,responseTimeout=10000",
                         log: Console.Out);
                     redis.ErrorMessage += Redis_ErrorMessage;
@@ -82,7 +82,7 @@ namespace ProductSearchService.API.Caching
                 .Execute(action: () =>
                 {
                     Logger.LogInformation(message: $"RedisCache: Begin get data for key \"{key}\"");
-                    var item = MemoryCache.Get<T>(key: key) ?? GetFromRedis<T>(key: key);
+                    T item = MemoryCache.Get<T>(key: key) ?? GetFromRedis<T>(key: key);
                     Logger.LogInformation(message: $"RedisCache: End get data for key \"{key}\"");
                     return item;
                 });

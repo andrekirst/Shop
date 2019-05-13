@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using FluentTimeSpan;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace ProductSearchService.API.Messaging
 {
@@ -13,30 +14,30 @@ namespace ProductSearchService.API.Messaging
     {
         private IConnection _connection;
         private IModel _channel;
+        private readonly Dictionary<string, bool> _cachedExchangeDeclarations = new Dictionary<string, bool>();
 
         public RabbitMessageQueueMessagePublisher(
             IRabbitMessageQueueSettings settings,
-            string exchange,
             IMessageSerializer messageSerializer,
-            ILogger<RabbitMessageQueueMessagePublisher> logger)
+            ILogger<RabbitMessageQueueMessagePublisher> logger,
+            IMemoryCache memoryCache)
         {
             Settings = settings;
-            Exchange = exchange;
             MessageSerializer = messageSerializer;
             Logger = logger;
+            MemoryCache = memoryCache;
 
             CreateChannel();
         }
 
         public IRabbitMessageQueueSettings Settings { get; }
         
-        public string Exchange { get; }
-        
         private IMessageSerializer MessageSerializer { get; }
         
         private ILogger<RabbitMessageQueueMessagePublisher> Logger { get; }
+        private IMemoryCache MemoryCache { get; }
 
-        public Task SendMessageAsync(object message, string messageType) =>
+        public Task SendMessageAsync(object message, string messageType, string exchange) =>
             Task.Run(action: () =>
                 Policy
                     .Handle<Exception>()
@@ -51,10 +52,11 @@ namespace ProductSearchService.API.Messaging
                     {
                         BasicProperties publishProperties = CreateProperties(message: message, messageType: messageType);
                         string data = MessageSerializer.Serialize(value: message);
-                        var body = MessageSerializer.Encoding.GetBytes(s: data);
+                        byte[] body = MessageSerializer.Encoding.GetBytes(s: data);
                         PublishMessage(
                             publishProperties: publishProperties,
-                            message: body);
+                            message: body,
+                            exchange: exchange);
 
                         if (message is Event @event)
                         {
@@ -62,7 +64,7 @@ namespace ProductSearchService.API.Messaging
                         }
                     }));
 
-        public Task SendEventAsync(Event @event, string messageType) =>
+        public Task SendEventAsync(Event @event, string messageType, string exchange) =>
             Task.Run(action: () =>
                 Policy
                     .Handle<Exception>()
@@ -77,19 +79,44 @@ namespace ProductSearchService.API.Messaging
                     {
                         BasicProperties publishProperties = CreateProperties(message: @event, messageType: messageType);
                         string data = MessageSerializer.Serialize(value: @event);
-                        var body = MessageSerializer.Encoding.GetBytes(s: data);
+                        byte[] body = MessageSerializer.Encoding.GetBytes(s: data);
                         PublishMessage(
                             publishProperties: publishProperties,
-                            message: body);
+                            message: body,
+                            exchange: exchange);
                             Logger.LogInformation(eventId: @event.EventId, message: @event.ToString());
                     }));
 
-        private void PublishMessage(BasicProperties publishProperties, byte[] message) =>
+        private void PublishMessage(BasicProperties publishProperties, byte[] message, string exchange)
+        {
+            if (!IsExchangeIsAlreadyDeclared(exchange))
+            {
+                CreateExchange(exchange: exchange);
+            }
+
             _channel.BasicPublish(
-                exchange: Exchange,
+                exchange: exchange,
                 routingKey: "",
                 basicProperties: publishProperties,
                 body: message);
+        }
+
+        private bool IsExchangeIsAlreadyDeclared(string exchange)
+        {
+            bool found =
+                MemoryCache.TryGetValue(
+                    key: $"{nameof(RabbitMessageQueueMessagePublisher)}:ExchangeDeclared:{exchange}",
+                    out object value);
+            return found && (bool)value;
+        }
+
+        private void MarkExchangeAsDeclared(string exchange)
+        {
+            MemoryCache.Set(
+                key: $"{nameof(RabbitMessageQueueMessagePublisher)}:ExchangeDeclared:{exchange}",
+                value: true,
+                absoluteExpirationRelativeToNow: 1.Minutes());
+        }
 
         private BasicProperties CreateProperties(object message, string messageType)
         {
@@ -125,16 +152,19 @@ namespace ProductSearchService.API.Messaging
 
             _connection = factory.CreateConnection();
             _channel = _connection.CreateModel();
-            CreateExchange();
         }
 
-        private void CreateExchange() =>
+        private void CreateExchange(string exchange)
+        {
             _channel.ExchangeDeclare(
-                exchange: Exchange,
+                exchange: exchange,
                 type: ExchangeType.Headers,
                 durable: true,
                 autoDelete: false,
                 arguments: null);
+
+            MarkExchangeAsDeclared(exchange: exchange);
+        }
 
         public void Dispose()
         {

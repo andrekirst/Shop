@@ -1,6 +1,5 @@
 ﻿using FluentTimeSpan;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using ProductSearchService.API.Caching;
 using ProductSearchService.API.Events;
 using ProductSearchService.API.Messaging;
@@ -10,6 +9,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using ProductSearchService.API.Infrastructure;
+using ProductSearchService.API.Logging;
 
 namespace ProductSearchService.API.Controllers
 {
@@ -21,17 +22,17 @@ namespace ProductSearchService.API.Controllers
     {
         public ProductController(
             IProductsRepository repository,
-            ILogger<ProductController> logger,
             IMessagePublisher messagePublisher,
-            ICache cache)
+            ICache cache,
+            IShopApiLogging logging,
+            ICorrelationIdGenerator correlationIdGenerator)
         {
-            Logger = logger;
             Repository = repository;
             MessagePublisher = messagePublisher;
             Cache = cache;
+            Logging = logging;
+            CorrelationIdGenerator = correlationIdGenerator;
         }
-
-        private ILogger<ProductController> Logger { get; }
 
         private IProductsRepository Repository { get; }
 
@@ -39,16 +40,21 @@ namespace ProductSearchService.API.Controllers
 
         private ICache Cache { get; }
 
+        private IShopApiLogging Logging { get; }
+        
+        private ICorrelationIdGenerator CorrelationIdGenerator { get; }
+
         [HttpGet]
         [ProducesResponseType(statusCode: 404)]
         [ProducesResponseType(statusCode: 200, Type = typeof(Product))]
         [Route(template: "product/{productnumber}", Name = nameof(GetByProductnumber))]
         public async Task<ActionResult<Product>> GetByProductnumber(string productnumber, CancellationToken cancellationToken)
         {
+            string correlationId = CorrelationIdGenerator.Generate();
             string cacheKey = $"ProductSearchService.Product[Productnumber=\"{productnumber}\"]";
             try
             {
-                var product = Cache.Get<Product>(key: cacheKey);
+                Product product = Cache.Get<Product>(key: cacheKey);
                 bool isProductCached = product != null;
 
                 if (isProductCached)
@@ -60,23 +66,35 @@ namespace ProductSearchService.API.Controllers
                     productnumber: productnumber,
                     cancellationToken: cancellationToken);
 
-                if (product != null)
+                if (product == null)
                 {
-                    await QueueProductSelectedEvent(product: product);
-
-                    Cache.Set(
-                        key: cacheKey,
-                        value: product,
-                        duration: 24.Hours());
-
-                    return Ok(value: product);
+                    return NotFound();
                 }
 
-                return NotFound();
+                await QueueProductSelectedEvent(product: product);
+
+                Cache.Set(
+                    key: cacheKey,
+                    value: product,
+                    duration: 24.Hours());
+
+                return Ok(value: product);
+
             }
             catch (TaskCanceledException exception)
             {
-                Logger.LogError(exception: exception, message: $"GetByProductnumber \"{productnumber}\" cancelled");
+                await Logging.LogError(
+                    exception: exception,
+                    message: $"GetByProductnumber \"{productnumber}\" cancelled",
+                    controllerName: nameof(ProductController),
+                    actionName: nameof(GetByProductnumber),
+                    httpVerb: "GET",
+                    apiVersion: "1.0",
+                    correlationId: correlationId,
+                    parameters: new Dictionary<string, object>
+                    {
+                        { nameof(productnumber), productnumber }
+                    });
             }
             return NotFound();
         }
@@ -87,10 +105,24 @@ namespace ProductSearchService.API.Controllers
         [Route(template: "products/{filter}", Name = nameof(Search))]
         public async Task<ActionResult<List<Product>>> Search(string filter, CancellationToken cancellationToken)
         {
+            string correlationId = CorrelationIdGenerator.Generate();
             string cacheKey = $"ProductSearchService.Products[filter=\"{filter}\"]";
             try
             {
-                var products = Cache.Get<List<Product>>(key: cacheKey);
+                List<Product> products = await Logging.LogStartAndEnd(
+                    func: () => Cache.Get<List<Product>>(key: cacheKey),
+                    logState: LogState.Info,
+                    messageStart: "Get Value from Cache",
+                    messageEnd: "Get Value from Cache",
+                    controllerName: nameof(ProductController),
+                    actionName: nameof(Search),
+                    httpVerb: "GET",
+                    apiVersion: "1.0",
+                    correlationId: correlationId,
+                    parameters: new Dictionary<string, object>
+                    {
+                        { nameof(filter), filter }
+                    });
                 bool areProductsCached = products != null;
 
                 if (areProductsCached)
@@ -98,30 +130,66 @@ namespace ProductSearchService.API.Controllers
                     return Ok(value: products);
                 }
 
-                products = await Repository.Search(
-                    filter: filter,
-                    cancellationToken: cancellationToken);
+                products = await Logging.LogStartAndEnd(
+                    func: async () => await Repository.Search(
+                        filter: filter,
+                        cancellationToken: cancellationToken),
+                    logState: LogState.Info,
+                    messageStart: "Get Value from Repository",
+                    messageEnd: "Get Value from Repository",
+                    controllerName: nameof(ProductController),
+                    actionName: nameof(Search),
+                    httpVerb: "GET",
+                    apiVersion: "1.0",
+                    correlationId: correlationId,
+                    parameters: new Dictionary<string, object>
+                    {
+                        { nameof(filter), filter }
+                    });
 
                 await QueueProductsSearchedEvent(products: products, filter: filter);
 
-                if (products != null && products.Any())
+                if (products == null || !products.Any())
                 {
-                    Cache.Set(
-                       key: cacheKey,
-                       value: products,
-                       duration: 1.Minutes());
-
-                    return Ok(value: products);
+                    return NotFound(value: null);
                 }
 
-                return NotFound(value: null);
+                Cache.Set(
+                    key: cacheKey,
+                    value: products,
+                    duration: 1.Minutes());
+
+                return Ok(value: products);
+
             }
             catch (TaskCanceledException exception)
             {
-                Logger.LogError(exception: exception, message: $"{nameof(Search)} \"{filter}\" cancelled");
+                await Logging.LogError(
+                    exception: exception,
+                    message: $"{nameof(Search)} \"{filter}\" cancelled",
+                    controllerName: nameof(ProductController),
+                    actionName: nameof(Search),
+                    httpVerb: "GET",
+                    apiVersion: "1.0",
+                    correlationId: correlationId,
+                    parameters: new Dictionary<string, object>
+                    {
+                        { nameof(filter), filter }
+                    });
             }
 
-            Logger.LogInformation(message: $"No data found for filter {filter}.");
+            await Logging.LogInfo(
+                message: $"{nameof(Search)} \"{filter}\" cancelled",
+                controllerName: nameof(ProductController),
+                actionName: nameof(Search),
+                httpVerb: "GET",
+                apiVersion: "1.0",
+                correlationId: correlationId,
+                parameters: new Dictionary<string, object>
+                {
+                    { nameof(filter), filter },
+                    { nameof(cancellationToken), cancellationToken }
+                });
             return NotFound();
         }
 
@@ -131,7 +199,8 @@ namespace ProductSearchService.API.Controllers
                     filter: filter,
                     productsFound: products != null && products.Any(),
                     numberOfProductsFound: products?.Count ?? 0),
-                messageType: "Event:ProductsSearchedEvent");
+                messageType: "Event:ProductsSearchedEvent",
+                exchange: "SearchLog");
 
         private Task QueueProductSelectedEvent(Product product) =>
             MessagePublisher.SendEventAsync(
@@ -139,6 +208,7 @@ namespace ProductSearchService.API.Controllers
                     productnumber: product.Productnumber,
                     name: product.Name,
                     description: product.Description),
-                messageType: "Event:ProductSelectedEvent");
+                messageType: "Event:ProductSelectedEvent",
+                exchange: "SearchLog");
     }
 }

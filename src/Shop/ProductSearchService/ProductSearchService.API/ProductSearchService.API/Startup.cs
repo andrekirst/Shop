@@ -4,6 +4,7 @@ using FluentTimeSpan;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.HealthChecks;
@@ -17,6 +18,7 @@ using ProductSearchService.API.Events;
 using ProductSearchService.API.Hubs;
 using ProductSearchService.API.Infrastructure;
 using ProductSearchService.API.Infrastructure.Json;
+using ProductSearchService.API.Logging;
 using ProductSearchService.API.Messaging;
 using ProductSearchService.API.Model;
 using ProductSearchService.API.Repositories;
@@ -37,24 +39,33 @@ namespace ProductSearchService.API
 
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddTransient<ICorrelationIdGenerator, DefaultCorrelationIdGenerator>();
             services.AddSingleton<IRabbitMessageQueueSettings, RabbitMessageQueueSettings>();
             services.AddSingleton<IMessageSerializer, JsonMessageSerializer>();
+            services.AddMemoryCache();
 
             services.AddSingleton<IMessagePublisher>(implementationFactory: sp => new RabbitMessageQueueMessagePublisher(
                 settings: sp.GetService<IRabbitMessageQueueSettings>(),
-                exchange: "SearchLog",
                 messageSerializer: sp.GetService<IMessageSerializer>(),
-                logger: sp.GetService<ILogger<RabbitMessageQueueMessagePublisher>>()));
+                logger: sp.GetService<ILogger<RabbitMessageQueueMessagePublisher>>(),
+                memoryCache: sp.GetService<IMemoryCache>()));
 
             services
                 .AddControllers()
                 .AddNewtonsoftJson();
 
             services.AddTransient<IDateTimeProvider, DefaultDateTimeProvider>();
-
             services.AddTransient<IJsonSerializer, NewtonsoftJsonSerializer>();
-
-            services.AddMemoryCache();
+            services.AddSingleton<IShopApiLogging, ShopApiLogging>(sp => new ShopApiLogging(
+                messagePublisher: sp.GetService<IMessagePublisher>(),
+                dateTimeProvider: sp.GetService<IDateTimeProvider>(),
+                loggingOptions: new ShopLoggingOptions
+                {
+                    Environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"),
+                    ServiceArea = "Private",
+                    ServiceName = "ProductSearchService.API",
+                    ServiceVersion = "1.0"
+                }));
 
             services.AddApiVersioning(setupAction: versioningSetup =>
             {

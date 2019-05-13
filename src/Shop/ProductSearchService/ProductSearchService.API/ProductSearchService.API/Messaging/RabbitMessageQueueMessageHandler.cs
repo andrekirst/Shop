@@ -63,7 +63,7 @@ namespace ProductSearchService.API.Messaging
                     })
                 .Execute(action: () =>
                 {
-                    var factory = new ConnectionFactory
+                    ConnectionFactory factory = new ConnectionFactory
                     {
                         HostName = Settings.HostName,
                         UserName = Settings.UserName,
@@ -73,7 +73,7 @@ namespace ProductSearchService.API.Messaging
 
                     _connection = factory.CreateConnection();
 
-                    var arguments = new Dictionary<string, object>()
+                    Dictionary<string, object> arguments = new Dictionary<string, object>()
                     {
                         { MessageType, Queue }
                     };

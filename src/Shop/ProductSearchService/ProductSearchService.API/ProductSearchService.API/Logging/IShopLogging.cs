@@ -2,7 +2,7 @@
 {
     public interface IShopLogging
     {
-        IShopAPILogging API { get; }
+        IShopApiLogging Api { get; }
 
         IShopCommonLogging Common { get; }
 

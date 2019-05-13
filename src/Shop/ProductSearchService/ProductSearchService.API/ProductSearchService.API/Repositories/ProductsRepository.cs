@@ -35,10 +35,10 @@ namespace ProductSearchService.API.Repositories
 
         private void CreateIndexIfNotExists()
         {
-            var response = ElasticClient.IndicesExists<StringResponse>(index: Index);
+            StringResponse response = ElasticClient.IndicesExists<StringResponse>(index: Index);
             if (response.HttpStatusCode == 404)
             {
-                var createIndexResponse = ElasticClient.IndicesCreate<StringResponse>(
+                StringResponse createIndexResponse = ElasticClient.IndicesCreate<StringResponse>(
                     index: Index,
                     body: Serializable(o: new
                     {
@@ -86,8 +86,8 @@ namespace ProductSearchService.API.Repositories
 
         private void InitializeElasticClient()
         {
-            var elasticNode = new Uri(uriString: ElasticClientSettings.Uri);
-            var elasticConfiguration = new ConnectionConfiguration(uri: elasticNode)
+            Uri elasticNode = new Uri(uriString: ElasticClientSettings.Uri);
+            ConnectionConfiguration elasticConfiguration = new ConnectionConfiguration(uri: elasticNode)
                 .RequestTimeout(timeout: ElasticClientSettings.RequestTimoutInMinutes.Minutes())
                 .EnableHttpCompression(enabled: ElasticClientSettings.EnableHttpCompression)
                 .EnableHttpPipelining(enabled: ElasticClientSettings.EnableHttpPipelining)
@@ -133,7 +133,7 @@ namespace ProductSearchService.API.Repositories
 
             Logger.LogDebug(message: $"QueryBody: \"{JsonSerializer.Serialize(value: queryBody)}\"");
 
-            var response = await ElasticClient.SearchAsync<StringResponse>(
+            StringResponse response = await ElasticClient.SearchAsync<StringResponse>(
                     index: Index,
                     body: queryBody,
                     ctx: cancellationToken);
@@ -145,7 +145,7 @@ namespace ProductSearchService.API.Repositories
             }
 
             // TODO Json interface
-            var result = response.Success
+            List<Product> result = response.Success
                 ? JObject.Parse(json: response.Body)[propertyName: "hits"][key: "hits"]
                     .Select(selector: s => s[key: "_source"].ToObject<Product>())
                     .ToList()
@@ -156,7 +156,7 @@ namespace ProductSearchService.API.Repositories
         public async Task<Product> GetProductByProductnumber(string productnumber, CancellationToken cancellationToken)
         {
             Logger.LogInformation(message: $"ProductsRepository: Call GetAsync to index \"{Index}\" and id \"{productnumber}\"");
-            var response = await ElasticClient.GetAsync<StringResponse>(
+            StringResponse response = await ElasticClient.GetAsync<StringResponse>(
                     index: Index,
                     id: productnumber,
                     ctx: cancellationToken);
@@ -200,7 +200,7 @@ namespace ProductSearchService.API.Repositories
 
         public async Task<bool> UpdateProductName(string productnumber, string name)
         {
-            var response = await ElasticClient.UpdateAsync<StringResponse>(
+            StringResponse response = await ElasticClient.UpdateAsync<StringResponse>(
                 index: Index,
                 id: productnumber,
                 body: Serializable(o: new
@@ -217,7 +217,7 @@ namespace ProductSearchService.API.Repositories
         {
             int numberOfProducts = products.Count;
 
-            var items = new object[numberOfProducts * 2];
+            object[] items = new object[numberOfProducts * 2];
             for (int i = 0; i < numberOfProducts; i++)
             {
                 items[i * 2] = new { index = new { _index = Index, _id = products[index: i].Productnumber } };
@@ -229,7 +229,7 @@ namespace ProductSearchService.API.Repositories
                     ToIndexAddedAt = DateTimeProvider.Now
                 };
             }
-            var response = await ElasticClient.BulkAsync<StringResponse>(body: MultiJson(listOfObjects: items));
+            StringResponse response = await ElasticClient.BulkAsync<StringResponse>(body: MultiJson(listOfObjects: items));
             return response.Success;
         }
     }

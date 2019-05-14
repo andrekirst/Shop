@@ -25,13 +25,13 @@ namespace ProductSearchService.API.Controllers
             IMessagePublisher messagePublisher,
             ICache cache,
             IShopApiLogging logging,
-            ICorrelationIdGenerator correlationIdGenerator)
+            ICorrelationIdFactory correlationIdGenerator)
         {
             Repository = repository;
             MessagePublisher = messagePublisher;
             Cache = cache;
             Logging = logging;
-            CorrelationIdGenerator = correlationIdGenerator;
+            CorrelationIdFactory = correlationIdGenerator;
         }
 
         private IProductsRepository Repository { get; }
@@ -42,7 +42,7 @@ namespace ProductSearchService.API.Controllers
 
         private IShopApiLogging Logging { get; }
         
-        private ICorrelationIdGenerator CorrelationIdGenerator { get; }
+        private ICorrelationIdFactory CorrelationIdFactory { get; }
 
         [HttpGet]
         [ProducesResponseType(statusCode: 404)]
@@ -50,11 +50,25 @@ namespace ProductSearchService.API.Controllers
         [Route(template: "product/{productnumber}", Name = nameof(GetByProductnumber))]
         public async Task<ActionResult<Product>> GetByProductnumber(string productnumber, CancellationToken cancellationToken)
         {
-            string correlationId = CorrelationIdGenerator.Generate();
+            string correlationId = CorrelationIdFactory.Build();
             string cacheKey = $"ProductSearchService.Product[Productnumber=\"{productnumber}\"]";
             try
             {
-                Product product = Cache.Get<Product>(key: cacheKey);
+                Product product = await Logging.LogStartAndEnd(
+                    func: () => Cache.Get<Product>(key: cacheKey),
+                    logState: LogState.Info,
+                    messageStart: "Get Value from Cache",
+                    messageEnd: "Get Value from Cache",
+                    controllerName: nameof(ProductController),
+                    actionName: nameof(GetByProductnumber),
+                    httpVerb: "GET",
+                    apiVersion: "1.0",
+                    correlationId: correlationId,
+                    controller: this,
+                    parameters: new Dictionary<string, object>
+                    {
+                        { nameof(productnumber), productnumber }
+                    });
                 bool isProductCached = product != null;
 
                 if (isProductCached)
@@ -62,9 +76,23 @@ namespace ProductSearchService.API.Controllers
                     return Ok(value: product);
                 }
 
-                product = await Repository.GetProductByProductnumber(
-                    productnumber: productnumber,
-                    cancellationToken: cancellationToken);
+                product = await Logging.LogStartAndEnd(
+                    func: async () => await Repository.GetProductByProductnumber(
+                        productnumber: productnumber,
+                        cancellationToken: cancellationToken),
+                    logState: LogState.Info,
+                    messageStart: "Get Value from Repository",
+                    messageEnd: "Get Value from Repository",
+                    controllerName: nameof(ProductController),
+                    actionName: nameof(GetByProductnumber),
+                    httpVerb: "GET",
+                    apiVersion: "1.0",
+                    correlationId: correlationId,
+                    controller: this,
+                    parameters: new Dictionary<string, object>
+                    {
+                        { nameof(productnumber), productnumber }
+                    });
 
                 if (product == null)
                 {
@@ -83,14 +111,15 @@ namespace ProductSearchService.API.Controllers
             }
             catch (TaskCanceledException exception)
             {
-                await Logging.LogError(
+                _ = Logging.LogError(
                     exception: exception,
-                    message: $"GetByProductnumber \"{productnumber}\" cancelled",
+                    message: $"{nameof(GetByProductnumber)} \"{productnumber}\" cancelled",
                     controllerName: nameof(ProductController),
                     actionName: nameof(GetByProductnumber),
                     httpVerb: "GET",
                     apiVersion: "1.0",
                     correlationId: correlationId,
+                    controller: this,
                     parameters: new Dictionary<string, object>
                     {
                         { nameof(productnumber), productnumber }
@@ -105,7 +134,7 @@ namespace ProductSearchService.API.Controllers
         [Route(template: "products/{filter}", Name = nameof(Search))]
         public async Task<ActionResult<List<Product>>> Search(string filter, CancellationToken cancellationToken)
         {
-            string correlationId = CorrelationIdGenerator.Generate();
+            string correlationId = CorrelationIdFactory.Build();
             string cacheKey = $"ProductSearchService.Products[filter=\"{filter}\"]";
             try
             {
@@ -119,6 +148,7 @@ namespace ProductSearchService.API.Controllers
                     httpVerb: "GET",
                     apiVersion: "1.0",
                     correlationId: correlationId,
+                    controller: this,
                     parameters: new Dictionary<string, object>
                     {
                         { nameof(filter), filter }
@@ -142,6 +172,7 @@ namespace ProductSearchService.API.Controllers
                     httpVerb: "GET",
                     apiVersion: "1.0",
                     correlationId: correlationId,
+                    controller: this,
                     parameters: new Dictionary<string, object>
                     {
                         { nameof(filter), filter }
@@ -164,7 +195,7 @@ namespace ProductSearchService.API.Controllers
             }
             catch (TaskCanceledException exception)
             {
-                await Logging.LogError(
+                _ = Logging.LogError(
                     exception: exception,
                     message: $"{nameof(Search)} \"{filter}\" cancelled",
                     controllerName: nameof(ProductController),
@@ -172,23 +203,12 @@ namespace ProductSearchService.API.Controllers
                     httpVerb: "GET",
                     apiVersion: "1.0",
                     correlationId: correlationId,
+                    controller: this,
                     parameters: new Dictionary<string, object>
                     {
                         { nameof(filter), filter }
                     });
             }
-
-            await Logging.LogInfo(
-                message: $"{nameof(Search)} \"{filter}\" cancelled",
-                controllerName: nameof(ProductController),
-                actionName: nameof(Search),
-                httpVerb: "GET",
-                apiVersion: "1.0",
-                correlationId: correlationId,
-                parameters: new Dictionary<string, object>
-                {
-                    { nameof(filter), filter }
-                });
             return NotFound();
         }
 

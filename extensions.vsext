@@ -1,0 +1,48 @@
+{
+  "id": "41cfde11-7dd7-4e70-9f82-ae8dcce0f2f7",
+  "name": "My Visual Studio extensions",
+  "description": "A collection of my Visual Studio extensions",
+  "version": "1.0",
+  "extensions": [
+    {
+      "name": "Add New File",
+      "vsixId": "2E78AA18-E864-4FBB-B8C8-6186FC865DB3"
+    },
+    {
+      "name": "Bootstrap Snippet Pack",
+      "vsixId": "6ed6c371-5815-407f-9148-f64b3a025dd9"
+    },
+    {
+      "name": "CommentsPlus",
+      "vsixId": "MGH.CommentsPlus.a6539c2f-6785-4586-8028-ad923b47224d"
+    },
+    {
+      "name": "EditorConfig Language Service",
+      "vsixId": "1209461d-57f8-46a4-814a-dbe5fecef941"
+    },
+    {
+      "name": "Extension Manager 2019",
+      "vsixId": "4a196712-2c3f-4730-ad1d-e7cda4185eb2"
+    },
+    {
+      "name": "Git Diff Margin",
+      "vsixId": "GitDiffMargin..5ef9f816-d9ce-45cd-a8fa-cd67a807df0e"
+    },
+    {
+      "name": "Live Share",
+      "vsixId": "Microsoft.VisualStudio.LiveShare"
+    },
+    {
+      "name": "Markdown Editor",
+      "vsixId": "9ca64947-e9ca-4543-bfb8-6cce9be19fd6"
+    },
+    {
+      "name": "Package Installer",
+      "vsixId": "fdd64809-376e-4542-92ce-808a8df06bcc"
+    },
+    {
+      "name": "ResXManager",
+      "vsixId": "43b35fe0-1f30-48de-887a-68256474202a"
+    }
+  ]
+}

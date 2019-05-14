@@ -1,7 +1,7 @@
 ﻿namespace ProductSearchService.API.Infrastructure
 {
-    public interface ICorrelationIdGenerator
+    public interface ICorrelationIdFactory
     {
-        string Generate();
+        string Build();
     }
 }

@@ -4,8 +4,9 @@ services:
   rabbitmq:
     image: rabbitmq:3-management
     container_name: rabbitmq
+    hostname: rabbitmq
     volumes:
-      - data.rabbitmq:/var/lib/rabbitmq
+      - data.rabbitmq:/data
       - log.rabbitmq:/var/log/rabbitmq
     ports:
       - "15672:15672"
@@ -23,7 +24,6 @@ services:
       - bootstrap.memory_lock=true
       - discovery.type=single-node
       - discovery.zen.hosts_provider=file
-      # - "ES_JAVA_OPTS=-Xms512 -Xmx512m"
     ulimits:
       memlock:
         soft: -1

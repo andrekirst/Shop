@@ -29,8 +29,14 @@ namespace ProductSearchService.API.Logging
 
         public string ApiVersion { get; set; }
 
+        public long? ElapsedMilliseconds { get; set; }
+
         public string CorrelationId { get; set; }
 
         public Dictionary<string, object> Parameters { get; set; } = new Dictionary<string, object>();
+        
+        public List<string> HostIPAddresses { get; set; }
+        
+        public string HostName { get; set; }
     }
 }

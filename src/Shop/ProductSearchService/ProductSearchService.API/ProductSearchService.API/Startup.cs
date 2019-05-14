@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Linq;
+using System.Net;
 using AutoMapper;
 using FluentTimeSpan;
 using Microsoft.AspNetCore.Builder;
@@ -39,7 +41,7 @@ namespace ProductSearchService.API
 
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddTransient<ICorrelationIdGenerator, DefaultCorrelationIdGenerator>();
+            services.AddTransient<ICorrelationIdFactory, DefaultCorrelationIdFactory>();
             services.AddSingleton<IRabbitMessageQueueSettings, RabbitMessageQueueSettings>();
             services.AddSingleton<IMessageSerializer, JsonMessageSerializer>();
             services.AddMemoryCache();
@@ -64,7 +66,12 @@ namespace ProductSearchService.API
                     Environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"),
                     ServiceArea = "Private",
                     ServiceName = "ProductSearchService.API",
-                    ServiceVersion = "1.0"
+                    ServiceVersion = "1.0",
+                    HostIPAddresses = Dns.GetHostAddresses(Dns.GetHostName())
+                        .Select(host =>
+                            host.MapToIPv4().ToString())
+                        .ToList(),
+                    HostName = Dns.GetHostName()
                 }));
 
             services.AddApiVersioning(setupAction: versioningSetup =>

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using Elasticsearch.Net;
+using Microsoft.AspNetCore.Mvc;
 using NLog;
 using ProductSearchService.API.Messaging;
 using IDateTimeProvider = ProductSearchService.API.Infrastructure.IDateTimeProvider;
@@ -16,7 +17,7 @@ namespace ProductSearchService.API.Logging
         private IDateTimeProvider DateTimeProvider { get; }
 
         private ShopLoggingOptions LoggingOptions { get; }
-        
+
         private Logger NLogLogger { get; }
 
         public ShopApiLogging(
@@ -39,25 +40,85 @@ namespace ProductSearchService.API.Logging
             string httpVerb,
             string apiVersion,
             string correlationId,
-            Dictionary<string, object> paramters,
-            Exception exception = null)
-            => new LoggingQueueMessage
+            ControllerBase controller,
+            Dictionary<string, object> parameters,
+            Exception exception = null,
+            long? elapsedMilliseconds = null)
+        {
+            if (parameters == null)
+            {
+                parameters = new Dictionary<string, object>();
+            }
+            parameters.TryAdd(key: "Debug:Controller.HttpContext.Connection", value: new { controller.HttpContext.Connection.Id });
+            parameters.TryAdd(
+                key: "Debug:Controller.HttpContext.Request",
+                value: new
+                {
+                    controller.HttpContext.Request.ContentLength,
+                    controller.HttpContext.Request.Headers,
+                    controller.HttpContext.Request.Method,
+                    controller.HttpContext.Request.Path,
+                    controller.HttpContext.Request.PathBase,
+                    controller.HttpContext.Request.Protocol,
+                    controller.HttpContext.Request.Query,
+                    controller.HttpContext.Request.QueryString,
+                    controller.HttpContext.Request.Cookies,
+                    controller.HttpContext.Request.RouteValues,
+                    controller.HttpContext.Request.Scheme
+                });
+
+            parameters.TryAdd(
+                key: "Debug:Controller.HttpContext.Response",
+                value: new
+                {
+                    controller.HttpContext.Response.ContentLength,
+                    controller.HttpContext.Response.Cookies,
+                    controller.HttpContext.Response.Headers,
+                    controller.HttpContext.Response.StatusCode
+                });
+
+            parameters.TryAdd(
+                key: "Debug:Controller.ControllerContext.ActionDescriptor",
+                value: new
+                {
+                    controller.ControllerContext.ActionDescriptor.ActionName,
+                    controller.ControllerContext.ActionDescriptor.ControllerName,
+                    controller.ControllerContext.ActionDescriptor.DisplayName,
+                    controller.ControllerContext.ActionDescriptor.ActionConstraints,
+                    controller.ControllerContext.ActionDescriptor.AttributeRouteInfo,
+                    controller.ControllerContext.ActionDescriptor.Id,
+                    controller.ControllerContext.ActionDescriptor.RouteValues
+                });
+            parameters.TryAdd(
+                key: "Debug:Controller.HttpContext.User",
+                value: new
+                {
+                    controller.HttpContext.User.Claims,
+                    controller.HttpContext.User.Identities,
+                    controller.HttpContext.User.Identity
+                });
+
+            return new LoggingQueueMessage
             {
                 Timestamp = DateTimeProvider.Now,
                 State = logState.GetStringValue(),
                 Message = message,
-                StackTrace = logState == LogState.Trace ? Environment.StackTrace : exception?.StackTrace,
+                StackTrace = exception?.StackTrace ?? Environment.StackTrace,
                 ApiActionName = actionName,
                 ApiControllerName = controllerName,
                 ApiApiHttpVerb = httpVerb,
                 ApiVersion = apiVersion,
-                Parameters = paramters,
+                Parameters = parameters,
+                CorrelationId = correlationId,
+                ElapsedMilliseconds = elapsedMilliseconds,
                 ServiceArea = LoggingOptions.ServiceArea,
                 ServiceEnvironment = LoggingOptions.Environment,
                 ServiceName = LoggingOptions.ServiceName,
                 ServiceVersion = LoggingOptions.ServiceVersion,
-                CorrelationId = correlationId
+                HostIPAddresses = LoggingOptions.HostIPAddresses,
+                HostName = LoggingOptions.HostName
             };
+        }
 
         public async Task Log(
             LogState logState,
@@ -65,10 +126,12 @@ namespace ProductSearchService.API.Logging
             string controllerName,
             string actionName,
             string correlationId,
+            ControllerBase controller,
             string httpVerb = "GET",
             string apiVersion = "1.0",
             Dictionary<string, object> parameters = null,
-            Exception exception = null)
+            Exception exception = null,
+            long? elapsedMilliseconds = null)
         {
             if (logState == LogState.Error)
             {
@@ -80,6 +143,7 @@ namespace ProductSearchService.API.Logging
                     httpVerb: httpVerb,
                     apiVersion: apiVersion,
                     correlationId: correlationId,
+                    controller: controller,
                     parameters: parameters);
                 return;
             }
@@ -90,8 +154,10 @@ namespace ProductSearchService.API.Logging
                 actionName: actionName,
                 httpVerb: httpVerb,
                 apiVersion: apiVersion,
-                paramters: parameters,
-                correlationId: correlationId);
+                parameters: parameters,
+                correlationId: correlationId,
+                controller: controller,
+                elapsedMilliseconds: elapsedMilliseconds);
 
             Task taskPushMessageToQueue = PushMessageToQueue(logMessage: logMessage);
             Task taskWriteMessageToNLog = WriteMessageToNLog(logState: logState, logMessage: logMessage);
@@ -104,31 +170,31 @@ namespace ProductSearchService.API.Logging
             switch (logState)
             {
                 case LogState.Trace:
-                {
-                    NLogLogger.Trace(message: logMessage.Message);
-                    break;
-                }
+                    {
+                        NLogLogger.Trace(message: logMessage.Message);
+                        break;
+                    }
                 case LogState.Debug:
-                {
-                    NLogLogger.Debug(message: logMessage.Message);
-                    break;
-                }
+                    {
+                        NLogLogger.Debug(message: logMessage.Message);
+                        break;
+                    }
                 case LogState.Warning:
-                {
-                    NLogLogger.Warn(message: logMessage.Message);
-                    break;
-                }
+                    {
+                        NLogLogger.Warn(message: logMessage.Message);
+                        break;
+                    }
                 case LogState.Info:
-                {
-                    NLogLogger.Info(message: logMessage.Message);
-                    break;
-                }
+                    {
+                        NLogLogger.Info(message: logMessage.Message);
+                        break;
+                    }
                 case LogState.Error:
                 case LogState.Fatal:
-                {
-                    NLogLogger.Error(exception: exception, message: logMessage.Message, args: null);
-                    break;
-                }
+                    {
+                        NLogLogger.Error(exception: exception, message: logMessage.Message, args: null);
+                        break;
+                    }
                 default:
                     throw new ArgumentOutOfRangeException(
                         paramName: nameof(logState),
@@ -157,9 +223,11 @@ namespace ProductSearchService.API.Logging
             string controllerName,
             string actionName,
             string correlationId,
+            ControllerBase controller,
             string httpVerb = "GET",
             string apiVersion = "1.0",
-            Dictionary<string, object> parameters = null)
+            Dictionary<string, object> parameters = null,
+            long? elapsedMilliseconds = null)
         {
             LoggingQueueMessage logMessage = CreateMessage(
                 logState: LogState.Error,
@@ -169,7 +237,9 @@ namespace ProductSearchService.API.Logging
                 httpVerb: httpVerb,
                 apiVersion: apiVersion,
                 correlationId: correlationId,
-                paramters: parameters);
+                controller: controller,
+                parameters: parameters,
+                elapsedMilliseconds: elapsedMilliseconds);
 
             Task taskPushErrorMessageToQueue = PushErrorMessageToQueue(logMessage: logMessage);
             Task taskPushMessageToQueue = PushMessageToQueue(logMessage: logMessage);
@@ -183,9 +253,11 @@ namespace ProductSearchService.API.Logging
             string controllerName,
             string actionName,
             string correlationId,
+            ControllerBase controller,
             string httpVerb = "GET",
             string apiVersion = "1.0",
-            Dictionary<string, object> parameters = null) =>
+            Dictionary<string, object> parameters = null,
+            long? elapsedMilliseconds = null) =>
             Log(
                 logState: LogState.Error,
                 message: message,
@@ -194,16 +266,20 @@ namespace ProductSearchService.API.Logging
                 httpVerb: httpVerb,
                 apiVersion: apiVersion,
                 correlationId: correlationId,
-                parameters: parameters);
+                controller: controller,
+                parameters: parameters,
+                elapsedMilliseconds: elapsedMilliseconds);
 
         public Task LogTrace(
             string message,
             string controllerName,
             string actionName,
             string correlationId,
+            ControllerBase controller,
             string httpVerb = "GET",
             string apiVersion = "1.0",
-            Dictionary<string, object> parameters = null) =>
+            Dictionary<string, object> parameters = null,
+            long? elapsedMilliseconds = null) =>
             Log(
                 logState: LogState.Trace,
                 message: message,
@@ -212,16 +288,20 @@ namespace ProductSearchService.API.Logging
                 httpVerb: httpVerb,
                 apiVersion: apiVersion,
                 correlationId: correlationId,
-                parameters: parameters);
+                controller: controller,
+                parameters: parameters,
+                elapsedMilliseconds: elapsedMilliseconds);
 
         public Task LogDebug(
             string message,
             string controllerName,
             string actionName,
             string correlationId,
+            ControllerBase controller,
             string httpVerb = "GET",
             string apiVersion = "1.0",
-            Dictionary<string, object> parameters = null) =>
+            Dictionary<string, object> parameters = null,
+            long? elapsedMilliseconds = null) =>
             Log(
                 logState: LogState.Debug,
                 message: message,
@@ -230,16 +310,20 @@ namespace ProductSearchService.API.Logging
                 httpVerb: httpVerb,
                 apiVersion: apiVersion,
                 correlationId: correlationId,
-                parameters: parameters);
+                controller: controller,
+                parameters: parameters,
+                elapsedMilliseconds: elapsedMilliseconds);
 
         public Task LogInfo(
             string message,
             string controllerName,
             string actionName,
-            string httpVerb,
-            string apiVersion,
             string correlationId,
-            Dictionary<string, object> parameters = null) =>
+            ControllerBase controller,
+            string httpVerb = "GET",
+            string apiVersion = "1.0",
+            Dictionary<string, object> parameters = null,
+            long? elapsedMilliseconds = null) =>
             Log(
                 logState: LogState.Info,
                 message: message,
@@ -248,15 +332,19 @@ namespace ProductSearchService.API.Logging
                 httpVerb: httpVerb,
                 apiVersion: apiVersion,
                 correlationId: correlationId,
-                parameters: parameters);
+                controller: controller,
+                parameters: parameters,
+                elapsedMilliseconds: elapsedMilliseconds);
 
         public Task LogWarning(string message,
             string controllerName,
             string actionName,
             string correlationId,
+            ControllerBase controller,
             string httpVerb = "GET",
             string apiVersion = "1.0",
-            Dictionary<string, object> parameters = null) =>
+            Dictionary<string, object> parameters = null,
+            long? elapsedMilliseconds = null) =>
             Log(
                 logState: LogState.Warning,
                 message: message,
@@ -265,7 +353,9 @@ namespace ProductSearchService.API.Logging
                 httpVerb: httpVerb,
                 apiVersion: apiVersion,
                 correlationId: correlationId,
-                parameters: parameters);
+                controller: controller,
+                parameters: parameters,
+                elapsedMilliseconds: elapsedMilliseconds);
 
         public async Task LogStartAndEnd(Action action,
             LogState logState,
@@ -274,6 +364,7 @@ namespace ProductSearchService.API.Logging
             string controllerName,
             string actionName,
             string correlationId,
+            ControllerBase controller,
             string httpVerb = "GET",
             string apiVersion = "1.0",
             Dictionary<string, object> parameters = null)
@@ -286,6 +377,7 @@ namespace ProductSearchService.API.Logging
                 httpVerb: httpVerb,
                 apiVersion: apiVersion,
                 correlationId: correlationId,
+                controller: controller,
                 parameters: parameters);
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
@@ -302,6 +394,7 @@ namespace ProductSearchService.API.Logging
                 httpVerb: httpVerb,
                 apiVersion: apiVersion,
                 correlationId: correlationId,
+                controller: controller,
                 parameters: parameters);
         }
 
@@ -312,6 +405,7 @@ namespace ProductSearchService.API.Logging
             string controllerName,
             string actionName,
             string correlationId,
+            ControllerBase controller,
             string httpVerb = "GET",
             string apiVersion = "1.0",
             Dictionary<string, object> parameters = null)
@@ -324,8 +418,9 @@ namespace ProductSearchService.API.Logging
                 httpVerb: httpVerb,
                 apiVersion: apiVersion,
                 correlationId: correlationId,
+                controller: controller,
                 parameters: parameters);
-            
+
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
 
@@ -341,7 +436,9 @@ namespace ProductSearchService.API.Logging
                 httpVerb: httpVerb,
                 apiVersion: apiVersion,
                 correlationId: correlationId,
-                parameters: parameters);
+                controller: controller,
+                parameters: parameters,
+                elapsedMilliseconds: stopwatch.ElapsedMilliseconds);
 
             return value;
         }
@@ -354,6 +451,7 @@ namespace ProductSearchService.API.Logging
             string controllerName,
             string actionName,
             string correlationId,
+            ControllerBase controller,
             string httpVerb = "GET",
             string apiVersion = "1.0",
             Dictionary<string, object> parameters = null)
@@ -366,6 +464,7 @@ namespace ProductSearchService.API.Logging
                 httpVerb: httpVerb,
                 apiVersion: apiVersion,
                 correlationId: correlationId,
+                controller: controller,
                 parameters: parameters);
 
             Stopwatch stopwatch = new Stopwatch();
@@ -382,7 +481,9 @@ namespace ProductSearchService.API.Logging
                 httpVerb: httpVerb,
                 apiVersion: apiVersion,
                 correlationId: correlationId,
-                parameters: parameters);
+                controller: controller,
+                parameters: parameters,
+                elapsedMilliseconds: stopwatch.ElapsedMilliseconds);
 
             return value;
         }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc;
 
 namespace ProductSearchService.API.Logging
 {
@@ -12,10 +13,12 @@ namespace ProductSearchService.API.Logging
             string controllerName,
             string actionName,
             string correlationId,
+            ControllerBase controller,
             string httpVerb = "GET",
             string apiVersion = "1.0",
             Dictionary<string, object> parameters = null,
-            Exception exception = null);
+            Exception exception = null,
+            long? elapsedMilliseconds = null);
 
         Task LogError(
             Exception exception,
@@ -23,54 +26,66 @@ namespace ProductSearchService.API.Logging
             string controllerName,
             string actionName,
             string correlationId,
+            ControllerBase controller,
             string httpVerb = "GET",
             string apiVersion = "1.0",
-            Dictionary<string, object> parameters = null);
+            Dictionary<string, object> parameters = null,
+            long? elapsedMilliseconds = null);
 
         Task LogError(
             string message,
             string controllerName,
             string actionName,
             string correlationId,
+            ControllerBase controller,
             string httpVerb = "GET",
             string apiVersion = "1.0",
-            Dictionary<string, object> parameters = null);
+            Dictionary<string, object> parameters = null,
+            long? elapsedMilliseconds = null);
 
         Task LogTrace(
             string message,
             string controllerName,
             string actionName,
             string correlationId,
+            ControllerBase controller,
             string httpVerb = "GET",
             string apiVersion = "1.0",
-            Dictionary<string, object> parameters = null);
+            Dictionary<string, object> parameters = null,
+            long? elapsedMilliseconds = null);
 
         Task LogDebug(
             string message,
             string controllerName,
             string actionName,
             string correlationId,
+            ControllerBase controller,
             string httpVerb = "GET",
             string apiVersion = "1.0",
-            Dictionary<string, object> parameters = null);
+            Dictionary<string, object> parameters = null,
+            long? elapsedMilliseconds = null);
 
         Task LogInfo(
             string message,
             string controllerName,
             string actionName,
-            string httpVerb,
-            string apiVersion,
             string correlationId,
-            Dictionary<string, object> parameters = null);
+            ControllerBase controller,
+            string httpVerb = "GET",
+            string apiVersion = "1.0",
+            Dictionary<string, object> parameters = null,
+            long? elapsedMilliseconds = null);
 
         Task LogWarning(
             string message,
             string controllerName,
             string actionName,
             string correlationId,
+            ControllerBase controller,
             string httpVerb = "GET",
             string apiVersion = "1.0",
-            Dictionary<string, object> parameters = null);
+            Dictionary<string, object> parameters = null,
+            long? elapsedMilliseconds = null);
 
         Task LogStartAndEnd(
             Action action,
@@ -80,6 +95,7 @@ namespace ProductSearchService.API.Logging
             string controllerName,
             string actionName,
             string correlationId,
+            ControllerBase controller,
             string httpVerb = "GET",
             string apiVersion = "1.0",
             Dictionary<string, object> parameters = null);
@@ -92,6 +108,7 @@ namespace ProductSearchService.API.Logging
             string controllerName,
             string actionName,
             string correlationId,
+            ControllerBase controller,
             string httpVerb = "GET",
             string apiVersion = "1.0",
             Dictionary<string, object> parameters = null);
@@ -104,6 +121,7 @@ namespace ProductSearchService.API.Logging
             string controllerName,
             string actionName,
             string correlationId,
+            ControllerBase controller,
             string httpVerb = "GET",
             string apiVersion = "1.0",
             Dictionary<string, object> parameters = null);

@@ -187,8 +187,7 @@ namespace ProductSearchService.API.Controllers
                 correlationId: correlationId,
                 parameters: new Dictionary<string, object>
                 {
-                    { nameof(filter), filter },
-                    { nameof(cancellationToken), cancellationToken }
+                    { nameof(filter), filter }
                 });
             return NotFound();
         }

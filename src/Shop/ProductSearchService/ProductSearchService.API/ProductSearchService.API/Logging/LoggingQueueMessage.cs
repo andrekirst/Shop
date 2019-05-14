@@ -11,7 +11,7 @@ namespace ProductSearchService.API.Logging
 
         public string Message { get; set; }
 
-        public string StackTrace { get; set; }
+        public List<string> StackTrace { get; set; }
 
         public string ServiceVersion { get; set; }
 

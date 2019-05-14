@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading.Tasks;
 using Elasticsearch.Net;
 using Microsoft.AspNetCore.Mvc;
 using NLog;
 using ProductSearchService.API.Messaging;
+using static System.String;
 using IDateTimeProvider = ProductSearchService.API.Infrastructure.IDateTimeProvider;
 
 namespace ProductSearchService.API.Logging
@@ -103,7 +105,12 @@ namespace ProductSearchService.API.Logging
                 Timestamp = DateTimeProvider.Now,
                 State = logState.GetStringValue(),
                 Message = message,
-                StackTrace = exception?.StackTrace ?? Environment.StackTrace,
+                StackTrace =
+                    (exception?.StackTrace ?? Environment.StackTrace)
+                    .Split('\n', '\r')
+                    .Where(s => !IsNullOrEmpty(s))
+                    .Select(s => s.Trim())
+                    .ToList(),
                 ApiActionName = actionName,
                 ApiControllerName = controllerName,
                 ApiApiHttpVerb = httpVerb,

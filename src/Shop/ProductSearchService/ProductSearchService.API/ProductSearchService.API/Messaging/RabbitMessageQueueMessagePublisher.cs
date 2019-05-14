@@ -14,7 +14,6 @@ namespace ProductSearchService.API.Messaging
     {
         private IConnection _connection;
         private IModel _channel;
-        private readonly Dictionary<string, bool> _cachedExchangeDeclarations = new Dictionary<string, bool>();
 
         public RabbitMessageQueueMessagePublisher(
             IRabbitMessageQueueSettings settings,

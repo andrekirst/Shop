@@ -51,45 +51,6 @@ services:
       - "5601:5601"
     environment:
       - ELASTICSEARCH_HOSTS=http://elastic:9200
-  
-#   heartbeat:
-#     image: docker.elastic.co/beats/heartbeat:7.0.0
-#     container_name: heartbeat
-#     volumes:
-#       - './heartbeat.yml:/usr/share/heartbeat/heartbeat.yml'
-#     depends_on:
-#       - elastic
-#       - kibana
-#       - productsearchservice.api
-#       - rabbitmq
-#       - mailserver
-#     environment:
-#       - setup.kibana.host=kibana:5601
-#       - setup.elasticsearch.hosts=["elastic:9200"]
-  
-#   metricbeat:
-#     image: docker.elastic.co/beats/metricbeat:7.0.0
-#     container_name: metricbeat
-#     volumes:
-#       - './metricbeat.yml:/usr/share/metricbeat/metricbeat.yml'
-#     environment:
-#       - ELASTICSEARCH_HOST=elastic:9200
-#       - KIBANA_HOST=kibana:5601
-
-#   mailserver:
-#     image: djfarrelly/maildev
-#     container_name: mailserver
-#     ports:
-#       - "25:25"
-#       - "4000:80"
-  
-  # logserver:
-  #   image: datalust/seq:5
-  #   container_name: logserver
-  #   ports:
-  #     - "5341:80"
-  #   environment:
-  #     - ACCEPT_EULA=Y
 
   productsearchservice.api:
     image: shop/productsearchservice.api:latest
@@ -106,10 +67,6 @@ services:
 
 volumes:
   data.elastic:
-    external: true
   data.rabbitmq:
-    external: true
   log.rabbitmq:
-    external: true
   data.redis:
-    external: true

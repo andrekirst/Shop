@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 using Elasticsearch.Net;
 using Microsoft.AspNetCore.Mvc;
 using NLog;
-using ProductSearchService.API.Messaging;
+using Shop.Infrastructure.Messaging;
 using static System.String;
-using IDateTimeProvider = ProductSearchService.API.Infrastructure.IDateTimeProvider;
+using IDateTimeProvider = Shop.Infrastructure.Infrastructure.IDateTimeProvider;
 
 namespace ProductSearchService.API.Logging
 {

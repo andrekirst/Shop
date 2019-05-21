@@ -1,6 +1,6 @@
 ﻿using System.Text;
 
-namespace ProductSearchService.API.Messaging
+namespace Shop.Infrastructure.Messaging
 {
     public interface IMessageSerializer
     {

@@ -1,5 +1,5 @@
 ﻿using System;
-using ProductSearchService.API.Messaging;
+using Shop.Infrastructure.Messaging;
 
 namespace ProductSearchService.API.Events
 {

@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace ProductSearchService.API.Infrastructure
+namespace Shop.Infrastructure.Infrastructure
 {
     public class DefaultDateTimeProvider : IDateTimeProvider
     {

@@ -1,13 +1,13 @@
-﻿using FluentTimeSpan;
+﻿using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using FluentTimeSpan;
 using Microsoft.Extensions.Logging;
 using Polly;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 
-namespace ProductSearchService.API.Messaging
+namespace Shop.Infrastructure.Messaging
 {
     public class RabbitMessageQueueMessageHandler<TCallback> : IMessageHandler<TCallback>
         where TCallback : IMessageHandlerCallback

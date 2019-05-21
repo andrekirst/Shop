@@ -4,10 +4,10 @@ using System.Threading.Tasks;
 using FluentTimeSpan;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using ProductSearchService.API.Caching;
+using Shop.Infrastructure.Caching;
 using ProductSearchService.API.Events;
 using ProductSearchService.API.Exceptions;
-using ProductSearchService.API.Messaging;
+using Shop.Infrastructure.Messaging;
 using ProductSearchService.API.Model;
 using ProductSearchService.API.Repositories;
 

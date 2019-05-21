@@ -12,18 +12,18 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using ProductSearchService.API.Caching;
 using ProductSearchService.API.Checks;
 using ProductSearchService.API.Commands;
 using ProductSearchService.API.EventHandlers;
 using ProductSearchService.API.Events;
 using ProductSearchService.API.Hubs;
-using ProductSearchService.API.Infrastructure;
-using ProductSearchService.API.Infrastructure.Json;
 using ProductSearchService.API.Logging;
-using ProductSearchService.API.Messaging;
 using ProductSearchService.API.Model;
 using ProductSearchService.API.Repositories;
+using Shop.Infrastructure.Caching;
+using Shop.Infrastructure.Infrastructure;
+using Shop.Infrastructure.Infrastructure.Json;
+using Shop.Infrastructure.Messaging;
 
 namespace ProductSearchService.API
 {

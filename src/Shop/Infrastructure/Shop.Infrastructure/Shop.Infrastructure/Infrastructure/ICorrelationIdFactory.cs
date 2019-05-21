@@ -1,4 +1,4 @@
-﻿namespace ProductSearchService.API.Infrastructure
+﻿namespace Shop.Infrastructure.Infrastructure
 {
     public interface ICorrelationIdFactory
     {

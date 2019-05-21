@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace ProductSearchService.API.Messaging
+namespace Shop.Infrastructure.Messaging
 {
     public class Command : Message
     {

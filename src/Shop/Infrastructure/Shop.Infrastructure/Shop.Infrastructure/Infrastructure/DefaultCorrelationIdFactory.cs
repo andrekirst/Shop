@@ -1,11 +1,11 @@
-﻿using static System.Guid;
+﻿using System;
 
-namespace ProductSearchService.API.Infrastructure
+namespace Shop.Infrastructure.Infrastructure
 {
     public class DefaultCorrelationIdFactory : ICorrelationIdFactory
     {
         public string Build()
-            => NewGuid()
+            => Guid.NewGuid()
                 .ToString()
                 .ToLower();
     }

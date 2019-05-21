@@ -1,7 +1,7 @@
-﻿using Microsoft.Extensions.Logging;
-using System;
+﻿using System;
+using Microsoft.Extensions.Logging;
 
-namespace ProductSearchService.API.Messaging
+namespace Shop.Infrastructure.Messaging
 {
     public class Event : Message
     {

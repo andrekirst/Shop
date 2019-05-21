@@ -8,10 +8,10 @@ using FluentTimeSpan;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using ProductSearchService.API.Events;
-using ProductSearchService.API.Infrastructure.Json;
 using ProductSearchService.API.Model;
+using Shop.Infrastructure.Infrastructure.Json;
 using static Elasticsearch.Net.PostData;
-using IDateTimeProvider = ProductSearchService.API.Infrastructure.IDateTimeProvider;
+using IDateTimeProvider = Shop.Infrastructure.Infrastructure.IDateTimeProvider;
 
 namespace ProductSearchService.API.Repositories
 {
@@ -98,9 +98,9 @@ namespace ProductSearchService.API.Repositories
         private ILogger<ProductsRepository> Logger { get; }
 
         private IElasticClientSettings ElasticClientSettings { get; }
-        
+
         private IJsonSerializer JsonSerializer { get; }
-        
+
         private IDateTimeProvider DateTimeProvider { get; }
 
         private IElasticLowLevelClient ElasticClient { get; set; }

@@ -1,4 +1,4 @@
-﻿namespace ProductSearchService.API.Caching
+﻿namespace Shop.Infrastructure.Caching
 {
     public interface IRedisCacheSettings
     {

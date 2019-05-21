@@ -1,6 +1,6 @@
 ﻿using System.Threading.Tasks;
 
-namespace ProductSearchService.API.Messaging
+namespace Shop.Infrastructure.Messaging
 {
     public interface IMessagePublisher
     {

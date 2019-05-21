@@ -1,16 +1,16 @@
-﻿using FluentTimeSpan;
-using Microsoft.AspNetCore.Mvc;
-using ProductSearchService.API.Caching;
-using ProductSearchService.API.Events;
-using ProductSearchService.API.Messaging;
-using ProductSearchService.API.Model;
-using ProductSearchService.API.Repositories;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using ProductSearchService.API.Infrastructure;
+using FluentTimeSpan;
+using Microsoft.AspNetCore.Mvc;
+using ProductSearchService.API.Events;
 using ProductSearchService.API.Logging;
+using ProductSearchService.API.Model;
+using ProductSearchService.API.Repositories;
+using Shop.Infrastructure.Caching;
+using Shop.Infrastructure.Infrastructure;
+using Shop.Infrastructure.Messaging;
 
 namespace ProductSearchService.API.Controllers
 {
@@ -41,7 +41,7 @@ namespace ProductSearchService.API.Controllers
         private ICache Cache { get; }
 
         private IShopApiLogging Logging { get; }
-        
+
         private ICorrelationIdFactory CorrelationIdFactory { get; }
 
         [HttpGet]

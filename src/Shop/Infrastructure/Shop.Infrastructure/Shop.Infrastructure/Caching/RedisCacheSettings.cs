@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Configuration;
 
-namespace ProductSearchService.API.Caching
+namespace Shop.Infrastructure.Caching
 {
     public class RedisCacheSettings : IRedisCacheSettings
     {

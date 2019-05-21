@@ -1,7 +1,7 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace ProductSearchService.API.Infrastructure.Json
+namespace Shop.Infrastructure.Infrastructure.Json
 {
     public class NewtonsoftJsonSerializer : IJsonSerializer
     {

@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace ProductSearchService.API.Infrastructure.Json
+namespace Shop.Infrastructure.Infrastructure.Json
 {
     public class NetCoreJsonSerializer : IJsonSerializer
     {

@@ -1,6 +1,6 @@
-﻿using Microsoft.Extensions.Logging;
-using ProductSearchService.API.Messaging;
-using System;
+﻿using System;
+using Microsoft.Extensions.Logging;
+using Shop.Infrastructure.Messaging;
 
 namespace ProductSearchService.API.Events
 {

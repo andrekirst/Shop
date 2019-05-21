@@ -2,12 +2,11 @@
 using FluentTimeSpan;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 using Polly;
-using ProductSearchService.API.Infrastructure.Json;
+using Shop.Infrastructure.Infrastructure.Json;
 using StackExchange.Redis;
 
-namespace ProductSearchService.API.Caching
+namespace Shop.Infrastructure.Caching
 {
     public class RedisCache : ICache
     {

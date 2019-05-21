@@ -1,4 +1,4 @@
-﻿namespace ProductSearchService.API.Messaging
+﻿namespace Shop.Infrastructure.Messaging
 {
     public interface IMessageHandler<TCallback>
         where TCallback : IMessageHandlerCallback

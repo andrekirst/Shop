@@ -1,4 +1,4 @@
-﻿using ProductSearchService.API.Messaging;
+﻿using Shop.Infrastructure.Messaging;
 using System;
 
 namespace ProductSearchService.API.Commands

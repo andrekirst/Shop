@@ -1,4 +1,4 @@
-﻿namespace ProductSearchService.API.Infrastructure.Json
+﻿namespace Shop.Infrastructure.Infrastructure.Json
 {
     public interface IJsonSerializer
     {

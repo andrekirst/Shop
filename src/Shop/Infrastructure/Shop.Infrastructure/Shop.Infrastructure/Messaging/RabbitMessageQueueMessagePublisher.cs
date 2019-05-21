@@ -1,14 +1,14 @@
-﻿using Microsoft.Extensions.Logging;
-using Polly;
-using RabbitMQ.Client;
-using RabbitMQ.Client.Framing;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using FluentTimeSpan;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
+using Polly;
+using RabbitMQ.Client;
+using RabbitMQ.Client.Framing;
 
-namespace ProductSearchService.API.Messaging
+namespace Shop.Infrastructure.Messaging
 {
     public class RabbitMessageQueueMessagePublisher : IMessagePublisher, IDisposable
     {

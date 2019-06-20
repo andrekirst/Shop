@@ -58,17 +58,17 @@ namespace ProductSearchService.API
 
             services.AddTransient<IDateTimeProvider, DefaultDateTimeProvider>();
             services.AddTransient<IJsonSerializer, NewtonsoftJsonSerializer>();
-            services.AddSingleton<IShopApiLogging, ShopApiLogging>(sp => new ShopApiLogging(
+            services.AddSingleton<IShopApiLogging, ShopApiLogging>(implementationFactory: sp => new ShopApiLogging(
                 messagePublisher: sp.GetService<IMessagePublisher>(),
                 dateTimeProvider: sp.GetService<IDateTimeProvider>(),
                 loggingOptions: new ShopLoggingOptions
                 {
-                    Environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"),
+                    Environment = Environment.GetEnvironmentVariable(variable: "ASPNETCORE_ENVIRONMENT"),
                     ServiceArea = "Private",
                     ServiceName = "ProductSearchService.API",
                     ServiceVersion = "1.0",
-                    HostIPAddresses = Dns.GetHostAddresses(Dns.GetHostName())
-                        .Select(host =>
+                    HostIPAddresses = Dns.GetHostAddresses(hostNameOrAddress: Dns.GetHostName())
+                        .Select(selector: host =>
                             host.MapToIPv4().ToString())
                         .ToList(),
                     HostName = Dns.GetHostName()
@@ -149,14 +149,10 @@ namespace ProductSearchService.API
             app.UseEndpoints(configure: endpoints =>
             {
                 endpoints.MapControllers();
+                endpoints.MapHub<ProductHub>(pattern: "/producthub");
             });
 
             app.UseAuthorization();
-
-            app.UseSignalR(configure: routes =>
-            {
-                routes.MapHub<ProductHub>(path: "/producthub");
-            });
         }
 
         private void SetupAutoMapper()

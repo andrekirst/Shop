@@ -30,9 +30,9 @@ namespace Shop.Infrastructure.Messaging
         }
 
         public IRabbitMessageQueueSettings Settings { get; }
-        
+
         private IMessageSerializer MessageSerializer { get; }
-        
+
         private ILogger<RabbitMessageQueueMessagePublisher> Logger { get; }
         private IMemoryCache MemoryCache { get; }
 
@@ -59,7 +59,7 @@ namespace Shop.Infrastructure.Messaging
 
                         if (message is Event @event)
                         {
-                            Logger.LogInformation(eventId: @event.EventId, message: @event.ToString()); 
+                            Logger.LogInformation(eventId: @event.EventId, message: @event.ToString());
                         }
                     }));
 
@@ -83,12 +83,12 @@ namespace Shop.Infrastructure.Messaging
                             publishProperties: publishProperties,
                             message: body,
                             exchange: exchange);
-                            Logger.LogInformation(eventId: @event.EventId, message: @event.ToString());
+                        Logger.LogInformation(eventId: @event.EventId, message: @event.ToString());
                     }));
 
         private void PublishMessage(BasicProperties publishProperties, byte[] message, string exchange)
         {
-            if (!IsExchangeIsAlreadyDeclared(exchange))
+            if (!IsExchangeIsAlreadyDeclared(exchange: exchange))
             {
                 CreateExchange(exchange: exchange);
             }

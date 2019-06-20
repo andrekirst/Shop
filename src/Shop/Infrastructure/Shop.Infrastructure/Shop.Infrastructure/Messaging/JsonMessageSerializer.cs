@@ -21,7 +21,7 @@ namespace Shop.Infrastructure.Messaging
                 NamingStrategy = new CamelCaseNamingStrategy()
             });
         }
-        
+
         private JsonSerializerSettings Settings { get; }
 
         public string ContentType => "application/json";

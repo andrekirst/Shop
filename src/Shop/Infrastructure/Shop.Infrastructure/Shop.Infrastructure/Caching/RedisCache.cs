@@ -60,9 +60,9 @@ namespace Shop.Infrastructure.Caching
         private ILogger<RedisCache> Logger { get; }
 
         private IRedisCacheSettings Settings { get; }
-        
+
         private IMemoryCache MemoryCache { get; }
-        
+
         private IJsonSerializer JsonSerializer { get; }
 
         private IDatabase Database { get; set; }

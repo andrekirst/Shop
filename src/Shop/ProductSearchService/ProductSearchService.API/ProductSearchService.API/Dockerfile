@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/core/aspnet:3.0-stretch-slim AS base
+FROM mcr.microsoft.com/dotnet/core/aspnet:3.0-buster-slim AS base
 
 ARG PORT=5100
 
@@ -8,7 +8,7 @@ ENV ASPNETCORE_URLS http://*:${PORT}
 HEALTHCHECK --interval=5s --timeout=10s --retries=3 CMD curl --silent --fail http://localhost:${PORT}/health || exit 1
 ENV WEBSITE_SITE_NAME ProductSearchService.API
 
-FROM mcr.microsoft.com/dotnet/core/sdk:3.0-stretch AS build
+FROM mcr.microsoft.com/dotnet/core/sdk:3.0-buster AS build
 WORKDIR /src
 COPY . .
 RUN dotnet restore "ProductSearchService.API.csproj"

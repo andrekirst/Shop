@@ -14,9 +14,8 @@ using Shop.Infrastructure.Messaging;
 
 namespace ProductSearchService.API.Controllers
 {
-    [Route(template: "api/v{version:apiVersion}")]
+    [Route(template: "api")]
     [ApiController]
-    [ApiVersion(version: "1.0")]
     [ApiExplorerSettings(GroupName = "Products")]
     public class ProductController : ControllerBase
     {

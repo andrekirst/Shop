@@ -5,7 +5,6 @@ using AutoMapper;
 using FluentTimeSpan;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -74,15 +73,6 @@ namespace ProductSearchService.API
                     HostName = Dns.GetHostName()
                 }));
 
-            services.AddApiVersioning(setupAction: versioningSetup =>
-            {
-                versioningSetup.AssumeDefaultVersionWhenUnspecified = true;
-                versioningSetup.DefaultApiVersion = new ApiVersion(majorVersion: 1, minorVersion: 0);
-                versioningSetup.RegisterMiddleware = true;
-                versioningSetup.ReportApiVersions = true;
-                versioningSetup.UseApiBehavior = true;
-            });
-
             services.AddSignalR(configure: signalrConfiguration =>
             {
                 signalrConfiguration.EnableDetailedErrors = true;
@@ -135,6 +125,7 @@ namespace ProductSearchService.API
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
+                AppContext.SetSwitch(switchName: "System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", isEnabled: true);
             }
             else
             {

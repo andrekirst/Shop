@@ -108,8 +108,8 @@ namespace ProductSearchService.API.Logging
                 StackTrace =
                     (exception?.StackTrace ?? Environment.StackTrace)
                     .Split('\n', '\r')
-                    .Where(s => !IsNullOrEmpty(s))
-                    .Select(s => s.Trim())
+                    .Where(predicate: s => !IsNullOrEmpty(value: s))
+                    .Select(selector: s => s.Trim())
                     .ToList(),
                 ApiActionName = actionName,
                 ApiControllerName = controllerName,
